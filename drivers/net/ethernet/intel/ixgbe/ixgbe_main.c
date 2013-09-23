@@ -46,6 +46,9 @@
 #include <linux/if_vlan.h>
 #include <linux/if_macvlan.h>
 #include <linux/if_bridge.h>
+#ifdef CONFIG_TRILL
+#include <linux/if_trill.h>
+#endif
 #include <linux/prefetch.h>
 #include <scsi/fc/fc_fcoe.h>
 
@@ -1429,6 +1432,12 @@ static unsigned int ixgbe_get_headlen(unsigned char *data,
 		/* l2 headers */
 		struct ethhdr *eth;
 		struct vlan_hdr *vlan;
+#ifdef CONFIG_TRILL
+		struct trill_hdr* trill;
+		struct trill_opt* trill_opt;
+		struct ethhdr *eth2;
+		struct vlan_hdr *vlan2;
+#endif
 		/* l3 headers */
 		struct iphdr *ipv4;
 		struct ipv6hdr *ipv6;
@@ -1456,6 +1465,27 @@ static unsigned int ixgbe_get_headlen(unsigned char *data,
 		protocol = hdr.vlan->h_vlan_encapsulated_proto;
 		hdr.network += VLAN_HLEN;
 	}
+
+#ifdef CONFIG_TRILL
+	if (protocol == __constant_htons(ETH_P_TRILL)) {
+	  if ((hdr.network - data) > (max_len - sizeof(hdr.trill)))
+			return max_len;
+		hdr.network += sizeof(hdr.trill);
+		if(trill_get_optslen(hdr.trill->th_flags))
+		  hdr.network += sizeof(hdr.trill_opt);
+		/*inner header*/
+		protocol = hdr.eth2->h_proto;
+		hdr.network += ETH_HLEN;
+
+		/* handle any vlan tag if present */
+		if (protocol == __constant_htons(ETH_P_8021Q)) {
+		  if ((hdr.network - data) > (max_len - VLAN_HLEN))
+		    return max_len;
+		  protocol = hdr.vlan2->h_vlan_encapsulated_proto;
+		  hdr.network += VLAN_HLEN;
+		}
+	}
+#endif
 
 	/* handle L3 protocols */
 	if (protocol == __constant_htons(ETH_P_IP)) {
