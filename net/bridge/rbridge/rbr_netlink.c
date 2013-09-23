@@ -24,9 +24,86 @@ static struct genl_multicast_group trill_mcgrp = {
   .name		= TRILL_MCAST_NAME,
 };
 
-static int trill_cmd_set_nicks_info(struct sk_buff *skb, struct genl_info *info){
-  /* TODO */
+int create_node(struct net_bridge_port *p,
+		    struct rbr *rbr,
+		    struct rbr_nickinfo *rbr_ni_partial,
+		    struct genl_info *info)
+{
+  size_t size = 0;
+  size_t old_size = 0;
+  struct rbr_node* old;
+  struct rbr_nickinfo *rbr_ni;
+  if (rbr_ni_partial == NULL){
+    return -EFAULT;
+  }
+  size = RBR_NI_TOTALSIZE(rbr_ni_partial);
+  if (size > PAGE_SIZE-sizeof(struct trill_nl_header)){
+    pr_warn_ratelimited("create_node: size > (PAGE_SIZE-nickinfo_offset)\n");
+    return (EINVAL);
+  }
+  rbr_ni = kzalloc(size,GFP_KERNEL);
+  if(!rbr_ni)
+    return -EFAULT;
+  old = rbr->rbr_nodes[rbr_ni_partial->nick];
+  nla_memcpy(rbr_ni, info->attrs[TRILL_ATTR_BIN], size);
+  if (old)
+    old_size = RBR_NI_TOTALSIZE(old->rbr_ni);
+  /* replace old node by a new one only if nickname information have changed */
+  if ((old == NULL) || (old_size != size) || ( memcmp(old->rbr_ni, rbr_ni, size)))
+  {
+    struct rbr_node *new;
+    new = kzalloc(sizeof(struct rbr_node),GFP_KERNEL);
+    if (!new)
+	{
+	  kfree(rbr_ni);
+	  return -EFAULT;
+	}
+    atomic_set(&new->refs, 1);
+    new->rbr_ni = rbr_ni;
+    /* avoid deleting node while it is been used for routing */
+    rcu_assign_pointer(rbr->rbr_nodes[rbr_ni->nick], new);
+    if(old)
+	rbr_node_put(old);
+  }
+  else
+  {
+    kfree(rbr_ni);
+  }
+
   return 0;
+}
+static int trill_cmd_set_nicks_info(struct sk_buff *skb, struct genl_info *info){
+  struct trill_nl_header *trnlhdr;
+  struct rbr_nickinfo rbr_ni;
+  struct net_device *source_port = NULL;
+  struct net *net = sock_net(skb->sk);
+  struct net_bridge_port *p = NULL;
+  struct net_bridge *br = NULL;
+  trill_genlseqnb = info->snd_seq;
+  nla_memcpy(&rbr_ni, info->attrs[TRILL_ATTR_BIN], sizeof(struct rbr_nickinfo));
+  if (!VALID_NICK(rbr_ni.nick))
+    return -EFAULT;
+  trnlhdr = info->userhdr;
+  if (trnlhdr->ifindex)
+    source_port = __dev_get_by_index(net,trnlhdr->ifindex);
+  if (source_port){
+    p = br_port_get_rcu(source_port);
+    if (p)
+    {
+	br = p->br;
+	if (br)
+	{
+	  if (br->rbr)
+	  {
+	    if (create_node(p, br->rbr, &rbr_ni, info))
+		return -EFAULT;
+	    return 0;
+	  }
+	}
+    }
+  }
+    printk(KERN_WARNING"trill_cmd_set_nicks_info FAILED \n");
+    return -EFAULT;
 }
 
 static int trill_cmd_get_nicks_info(struct sk_buff *skb, struct genl_info *info){
