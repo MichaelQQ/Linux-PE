@@ -228,6 +228,46 @@ encaps_drop:
   return;
 }
 
+static int rbr_decap_finish(struct sk_buff *skb, u16 vid)
+{
+  struct net_bridge *br;
+  const unsigned char *dest = eth_hdr(skb)->h_dest;
+  struct net_bridge_fdb_entry *dst;
+  struct net_device *dev = skb->dev;
+  br = netdev_priv(dev);
+  dst = __br_fdb_get(br, dest, vid);
+  if (dst){
+	br_deliver(dst->dst, skb);
+  }
+  else{
+    br_flood_deliver_vif(br, skb);
+  }
+   return 0;
+}
+static void rbr_decaps(struct net_bridge_port *p,
+			     struct sk_buff *skb,
+			     size_t trhsize, u16 vid)
+{
+  struct trill_hdr *trh;
+  struct ethhdr *hdr;
+  if (skb == NULL)
+    return;
+  if (p == NULL)
+    return;
+  trh = (struct trill_hdr *)skb->data;
+  skb_pull(skb, trhsize);
+  skb_reset_mac_header(skb);  /* instead of the inner one */
+  skb->protocol = eth_hdr(skb)->h_proto;
+  hdr = (struct ethhdr*)skb->data;
+  skb_pull(skb, ETH_HLEN);
+  skb_reset_network_header(skb);
+  if (skb->encapsulation)
+    skb->encapsulation = 0;
+  /* Mark bridge as source device */
+  skb->dev = p->br->dev;
+  br_fdb_update_nick(p->br, p, hdr->h_source, vid, trh->th_ingressnick);
+  rbr_decap_finish(skb, vid);
+}
 static void rbr_recv(struct sk_buff *skb, u16 vid){
 	uint16_t local_nick, dtrNick, adjnick, idx;
 	struct rbr *rbr;
@@ -294,7 +334,7 @@ static void rbr_recv(struct sk_buff *skb, u16 vid){
 		    goto recv_drop;
 		  }
 		if (trh->th_egressnick == local_nick) {
-		  /* TODO decapsulate function */
+		  rbr_decaps(p, skb, trhsize, vid);
 		}
 		else if (trill_get_hopcount(trill_flags)) {
 			br_fdb_update(p->br, p, srcaddr, vid);
@@ -392,7 +432,7 @@ static void rbr_recv(struct sk_buff *skb, u16 vid){
 	 * Send de-capsulated frame locally
 	 */
 
-	/* TODO decapsulate function */
+	rbr_decaps(p, skb, trhsize, vid);
 	return;
 
 recv_drop:
