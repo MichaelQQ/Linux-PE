@@ -127,6 +127,64 @@ void br_trill_set_enabled(struct net_bridge *br, unsigned long val)
 	}
 }
 
+int rbr_fwd_finish(struct sk_buff *skb, u16 vid)
+{
+  struct net_bridge *br;
+  struct net_bridge_fdb_entry *dst;
+  struct ethhdr *outerethhdr;
+  const unsigned char *dest = eth_hdr(skb)->h_dest;
+  struct net_device *dev = skb->dev;
+  outerethhdr = eth_hdr(skb);
+  br = netdev_priv(dev);
+  dst = __br_fdb_get(br, dest, vid);
+  if (dst){
+    dst->used = jiffies;
+    memcpy(outerethhdr->h_source, dst->dst->dev->dev_addr,
+					dst->dst->dev->addr_len);
+    br_forward(dst->dst, skb, NULL);
+  }else{
+    br_flood_forward_nic(br, skb, NULL);
+  }
+    return 0;
+}
+
+static void rbr_fwd(struct net_bridge_port *p,
+				 struct sk_buff *skb,
+				 uint16_t adj_nick,
+				 u16 vid)
+{
+	struct rbr_node *adj;
+	struct trill_hdr *trh;
+	struct ethhdr *outerethhdr;
+
+	if (skb == NULL)
+		return;
+	adj = rbr_find_node(p->br->rbr, adj_nick);
+	if (adj == NULL){
+	  pr_warn_ratelimited("rbr_fwd: unable to find adjacent RBridge\n");
+	  goto dest_fwd_fail;
+	}
+	trh = (struct trill_hdr *) skb->data;
+	trillhdr_dec_hopcount(trh);
+	outerethhdr = eth_hdr(skb);
+
+	/* change outer ether header */
+	/* bridge become the source_port address in outeretherhdr */
+	memcpy(outerethhdr->h_source, p->br->dev->dev_addr, ETH_ALEN);
+	/* dist port become dest address in outeretherhdr */
+	memcpy(outerethhdr->h_dest, adj->rbr_ni->adjsnpa, ETH_ALEN);
+	rbr_node_put(adj);
+	/* set Bridge as source device */
+	skb->dev = p->br->dev;
+	rbr_fwd_finish(skb, vid);
+	return;
+dest_fwd_fail:
+	if (skb)
+	  kfree_skb(skb);
+	return;
+}
+
+
 static bool rbr_encaps(struct sk_buff *skb,
 						uint16_t ingressnick,
 						uint16_t egressnick,
@@ -218,7 +276,7 @@ static void rbr_encaps_prepare(struct sk_buff *skb, uint16_t egressnick, u16 vid
 	{
 	  if(rbr_encaps(skb, local_nick, egressnick, 0))
 	    goto encaps_drop;
-	  /* TODO simple forwarding */
+	  rbr_fwd(p, skb, egressnick, vid);
 	}
 	return;
 
@@ -338,7 +396,7 @@ static void rbr_recv(struct sk_buff *skb, u16 vid){
 		}
 		else if (trill_get_hopcount(trill_flags)) {
 			br_fdb_update(p->br, p, srcaddr, vid);
-			/* TODO simple forwarding */
+			rbr_fwd(p, skb, trh->th_egressnick, vid);
 		} else{
 		  pr_warn_ratelimited("rbr_recv: hop count limit reached\n");
 		  goto recv_drop;
