@@ -206,7 +206,8 @@ rx_handler_result_t rbr_handle_frame(struct sk_buff **pskb)
 			  }
 			  /* handle arp */
 			  else if (is_broadcast_ether_addr(eth_hdr(skb)->h_dest)){
-			    /* TODO flood on all hosts port and pass frame to localhost */
+			    br_fdb_update(br, p, eth_hdr(skb)->h_source, vid);
+			    rbr_handle_ether_frame_finish(skb);
 			    return RX_HANDLER_CONSUMED;
 			  }
 			  else{

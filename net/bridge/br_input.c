@@ -56,6 +56,85 @@ static int br_pass_frame_up(struct sk_buff *skb)
 		       netif_receive_skb);
 }
 
+#ifdef CONFIG_TRILL
+int rbr_handle_ether_frame_finish(struct sk_buff *skb)
+{
+	const unsigned char *dest = eth_hdr(skb)->h_dest;
+	struct net_bridge_port *p = br_port_get_rcu(skb->dev);
+	struct net_bridge *br;
+	struct net_bridge_fdb_entry *dst;
+	struct net_bridge_mdb_entry *mdst;
+	struct sk_buff *skb2;
+	u16 vid = 0;
+
+	if (!p || p->state == BR_STATE_DISABLED)
+		goto drop;
+
+	if (!br_allowed_ingress(p->br, nbp_get_vlan_info(p), skb, &vid))
+		goto drop;
+
+	/* insert into forwarding database after filtering to avoid spoofing */
+	br = p->br;
+	br_fdb_update(br, p, eth_hdr(skb)->h_source, vid);
+
+	if (!is_broadcast_ether_addr(dest) && is_multicast_ether_addr(dest) &&
+	    br_multicast_rcv(br, p, skb))
+		goto drop;
+
+	if (p->state == BR_STATE_LEARNING)
+		goto drop;
+
+	BR_INPUT_SKB_CB(skb)->brdev = br->dev;
+
+	/* The packet skb2 goes to the local host (NULL to skip). */
+	skb2 = NULL;
+
+	if (br->dev->flags & IFF_PROMISC)
+		skb2 = skb;
+
+	dst = NULL;
+
+	if (is_broadcast_ether_addr(dest))
+		skb2 = skb;
+	else if (is_multicast_ether_addr(dest)) {
+		mdst = br_mdb_get(br, skb, vid);
+		if (mdst || BR_INPUT_SKB_CB_MROUTERS_ONLY(skb)) {
+			if ((mdst && mdst->mglist) ||
+			    br_multicast_is_router(br))
+				skb2 = skb;
+			br_multicast_forward(mdst, skb, skb2);
+			skb = NULL;
+			if (!skb2)
+				goto out;
+		} else
+			skb2 = skb;
+
+		br->dev->stats.multicast++;
+	} else if ((dst = __br_fdb_get(br, dest, vid)) &&
+			dst->is_local) {
+		skb2 = skb;
+		/* Do not forward the packet since it's local. */
+		skb = NULL;
+	}
+
+	if (skb) {
+		if (dst) {
+			dst->used = jiffies;
+			br_forward(dst->dst, skb, skb2);
+		} else
+			br_flood_forward_nic(br, skb, skb2);
+	}
+
+	if (skb2)
+		return br_pass_frame_up(skb2);
+
+out:
+	return 0;
+drop:
+	kfree_skb(skb);
+	goto out;
+}
+#endif
 /* note: already called with rcu_read_lock */
 int br_handle_frame_finish(struct sk_buff *skb)
 {
