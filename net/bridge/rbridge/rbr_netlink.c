@@ -30,8 +30,50 @@ static int trill_cmd_set_nicks_info(struct sk_buff *skb, struct genl_info *info)
 }
 
 static int trill_cmd_get_nicks_info(struct sk_buff *skb, struct genl_info *info){
-  /* TODO */
-  return 0;
+  struct sk_buff *msg;
+  struct nlattr *attr;
+  struct rbr_nickinfo rbr_ni;
+  void * data;
+  struct trill_nl_header *trnlhdr;
+  struct net_device *source_port = NULL;
+  struct net *net = sock_net(skb->sk);
+  struct net_bridge_port *p = NULL;
+  struct net_bridge *br = NULL;
+  trill_genlseqnb = info->snd_seq;
+  nla_memcpy(&rbr_ni, info->attrs[TRILL_ATTR_BIN], sizeof(struct rbr_nickinfo));
+  trnlhdr = info->userhdr;
+  if (trnlhdr->ifindex)
+    source_port = __dev_get_by_index(net,trnlhdr->ifindex);
+  if (source_port){
+    p = br_port_get_rcu(source_port);
+    if (p)
+    {
+	br = p->br;
+	if (br)
+	{
+	  if (br->rbr)
+	  {
+	    struct rbr_node *rbr_node;
+	    rbr_node = rbr_find_node(br->rbr, rbr_ni.nick);
+	    msg = nlmsg_new(NLMSG_DEFAULT_SIZE, GFP_KERNEL);
+	    trnlhdr = genlmsg_put(msg, info->snd_portid, trill_genlseqnb,
+						&trill_genl_family,
+						sizeof(struct trill_nl_header),
+						TRILL_CMD_GET_NICKS_INFO);
+	    attr = nla_reserve(msg, TRILL_ATTR_BIN,
+				     RBR_NI_TOTALSIZE(rbr_node->rbr_ni));
+	    data = nla_data(attr);
+	    trnlhdr->ifindex = KERNL_RESPONSE_INTERFACE;
+	    memcpy(data, rbr_node->rbr_ni, RBR_NI_TOTALSIZE(rbr_node->rbr_ni));
+	    genlmsg_end(msg, trnlhdr);
+	    rbr_node_put(rbr_node);
+	    return  genlmsg_reply(msg, info);
+	  }
+	}
+    }
+  }
+    printk(KERN_WARNING"trill_cmd_get_nicks_info FAILED\n");
+    return -EFAULT;
 }
 
 static int trill_cmd_add_nicks_info(struct sk_buff *skb, struct genl_info *info){
