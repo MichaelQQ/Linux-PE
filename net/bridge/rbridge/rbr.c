@@ -13,7 +13,67 @@
  */
 
 #include "../br_private.h"
+static struct rbr *add_rbr(struct net_bridge *br)
+{
+  struct rbr *rbr;
+  char rbr_name[IFNAMSIZ];
+  if (!br->rbr){
+    rbr = kzalloc(sizeof(struct rbr), GFP_KERNEL);
+    if(!rbr)
+	return NULL;
+    strcpy(rbr_name, "");
+    strncat(rbr_name, br->dev->name, IFNAMSIZ-4);
+    strcat(rbr_name, "_rbr");
+    spin_lock_bh(&br->lock);
+    strncpy(rbr->name, rbr_name, IFNAMSIZ);
+    strncpy(rbr->rbr_bridgename, br->dev->name, IFNAMSIZ);
+    rbr->br = (struct net_bridge *)br;
+    rbr->nick = RBRIDGE_NICKNAME_NONE;
+    rbr->treeroot = RBRIDGE_NICKNAME_NONE;
+    spin_unlock_bh(&br->lock);
+    return rbr;
+  }
+  else{
+    return br->rbr;
+  }
+}
+static void br_trill_start(struct net_bridge *br)
+{
+	br->rbr = add_rbr(br);
+	if(br->rbr){
+	  spin_lock_bh(&br->lock);
+	  br->trill_enabled = BR_TRILL;
+	  spin_unlock_bh(&br->lock);
+	}
+	else{
+	  printk(KERN_WARNING"RBridge allocation for bridge '%s' failed\n",
+										br->dev->name);
+	}
+}
+
+static void br_trill_stop(struct net_bridge *br)
+{
+	struct rbr * old;
+	spin_lock_bh(&br->lock);
+	br->trill_enabled = BR_NO_TRILL;
+	spin_unlock_bh(&br->lock);
+	old = br->rbr;
+	br->rbr = NULL;
+	if(old)
+	{
+	  spin_lock_bh(&br->lock);
+	  kfree(old);
+	  spin_unlock_bh(&br->lock);
+	}
+}
+
 void br_trill_set_enabled(struct net_bridge *br, unsigned long val)
 {
-  /* FIXME */
+	if (val) {
+	  if (br->trill_enabled == BR_NO_TRILL)
+	    br_trill_start(br);
+	} else {
+	  if (br->trill_enabled != BR_NO_TRILL)
+	    br_trill_stop(br);
+	}
 }
