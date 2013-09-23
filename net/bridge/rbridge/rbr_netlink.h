@@ -6,6 +6,7 @@
 #define TRILL_NL_VERSION 0x1
 #define TRILL_NL_FAMILY  "TRILL_NL"
 #define TRILL_MCAST_NAME "TR_NL_MCAST"
+#include "rbr_private.h"
 
 struct trill_nl_header {
   int ifindex;  /* port id */
@@ -40,5 +41,8 @@ enum{
 
 int __init rbridge_register_genl(void);
 void __exit rbridge_unregister_genl(void);
+
+/* used to indicate that message is provided by kernel to user space */
+#define KERNL_RESPONSE_INTERFACE -1
 
 #endif /* RBR_NETLINK_H_ */

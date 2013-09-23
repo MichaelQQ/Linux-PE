@@ -1,7 +1,11 @@
 #include <net/genetlink.h>
 #include <net/netlink.h>
 #include <linux/if_trill.h>
+#include <linux/socket.h>
+#include "../br_private.h"
 #include "rbr_netlink.h"
+
+int trill_genlseqnb = 0; /*sequence number*/
 
 static struct nla_policy TRILL_U16_POLICY [TRILL_ATTR_MAX + 1]={
   [TRILL_ATTR_U16]={.type = NLA_U16},
@@ -40,14 +44,84 @@ static int trill_cmd_set_treeroot_id(struct sk_buff *skb, struct genl_info *info
   return 0;
 }
 
+/* trill_cmd_get_rbridge when started daemon inquire for already
+ * existant nickname
+ * bridge with TRILL capability may already have a nickname
+ * is daemon have crashed
+ */
 static int trill_cmd_get_rbridge(struct sk_buff *skb, struct genl_info *info){
-  /* TODO */
-  return 0;
+  struct trill_nl_header *trnlhdr;
+  struct sk_buff *msg;
+  struct net_bridge_port *p;
+  struct net_bridge *br;
+  struct net_device *source_port=NULL;
+  struct net *net = sock_net(skb->sk);
+  u16 nickname = RBRIDGE_NICKNAME_NONE;
+  trill_genlseqnb = info->snd_seq;
+  trnlhdr = info->userhdr;
+  if (trnlhdr->ifindex)
+    source_port = __dev_get_by_index(net,trnlhdr->ifindex);
+  if (source_port){
+    p = br_port_get_rcu(source_port);
+    if (p)
+    {
+	br = p->br;
+	if (br)
+	{
+	  if (br->rbr){
+	    nickname = ntohs(br->rbr->nick);
+	  }
+	}
+    }
+  }
+    msg = nlmsg_new(NLMSG_DEFAULT_SIZE, GFP_KERNEL);
+    trnlhdr = genlmsg_put(msg, info->snd_portid, trill_genlseqnb,
+				  &trill_genl_family,
+				  sizeof(struct trill_nl_header),
+				  TRILL_CMD_GET_RBRIDGE);
+    trnlhdr->ifindex = KERNL_RESPONSE_INTERFACE;
+    nla_put_u16(msg, TRILL_ATTR_U16, nickname);
+    genlmsg_end(msg, trnlhdr);
+    return  genlmsg_reply(msg, info);
 }
 
+/* trill_cmd_set_rbridge when started daemon set chosen nickname after
+ * discovering the topology and ensuring nickname uniqueness
+ */
 static int trill_cmd_set_rbridge(struct sk_buff *skb, struct genl_info *info){
-  /* TODO */
-  return 0;
+  u16 nickname;
+  struct trill_nl_header *trnlhdr;
+  struct net_device *source_port = NULL;
+  struct net_bridge_port *p = NULL;
+  struct net_bridge *br = NULL;
+  struct net *net = sock_net(skb->sk);
+  trill_genlseqnb = info->snd_seq;
+  trnlhdr = info->userhdr;
+  if (trnlhdr->ifindex){
+    source_port = __dev_get_by_index(net,trnlhdr->ifindex);
+  }
+  nickname = nla_get_u16(info->attrs[TRILL_ATTR_U16]);
+  if (source_port){
+    p = br_port_get_rcu(source_port);
+    if (p){
+      br = p->br;
+      if (br){
+	  /* if daemon has started and bridge TRILL capability
+	   * is not enabled then start it
+	   */
+	  if(br->trill_enabled == BR_NO_TRILL)
+	    br_trill_set_enabled(br, 1);
+	  if (br->rbr){
+	    spin_lock_bh(&br->lock);
+	    br->rbr->nick = htons(nickname);
+	    spin_unlock_bh(&br->lock);
+	    return 0;
+	  }
+      }
+    }
+  }
+  printk(KERN_WARNING"trill_cmd_set_bridge FAILED \n");
+  return -EFAULT;
 }
 
 static int trill_cmd_port_flush(struct sk_buff *skb, struct genl_info *info){
