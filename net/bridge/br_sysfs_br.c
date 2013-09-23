@@ -150,6 +150,40 @@ static ssize_t store_stp_state(struct device *d,
 static DEVICE_ATTR(stp_state, S_IRUGO | S_IWUSR, show_stp_state,
 		   store_stp_state);
 
+#ifdef CONFIG_TRILL
+static ssize_t show_trill_state(struct device *d,
+			      struct device_attribute *attr, char *buf)
+{
+	struct net_bridge *br = to_bridge(d);
+	return sprintf(buf, "%d\n", br->trill_enabled);
+}
+
+
+static ssize_t store_trill_state(struct device *d,
+			       struct device_attribute *attr, const char *buf,
+			       size_t len)
+{
+	struct net_bridge *br = to_bridge(d);
+	char *endp;
+	unsigned long val;
+
+	if (!ns_capable(dev_net(br->dev)->user_ns, CAP_NET_ADMIN))
+		return -EPERM;
+
+	val = simple_strtoul(buf, &endp, 0);
+	if (endp == buf)
+		return -EINVAL;
+
+	if (!rtnl_trylock())
+		return restart_syscall();
+	br_trill_set_enabled(br, val);
+	rtnl_unlock();
+
+	return len;
+}
+static DEVICE_ATTR(trill_state, S_IRUGO | S_IWUSR, show_trill_state,
+		   store_trill_state);
+#endif
 static ssize_t show_group_fwd_mask(struct device *d,
 			      struct device_attribute *attr, char *buf)
 {
@@ -778,6 +812,9 @@ static struct attribute *bridge_attrs[] = {
 #endif
 #ifdef CONFIG_BRIDGE_VLAN_FILTERING
 	&dev_attr_vlan_filtering.attr,
+#endif
+#ifdef CONFIG_TRILL
+	&dev_attr_trill_state.attr,
 #endif
 	NULL
 };

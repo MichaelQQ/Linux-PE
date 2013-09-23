@@ -16,4 +16,6 @@ bridge-$(CONFIG_BRIDGE_IGMP_SNOOPING) += br_multicast.o br_mdb.o
 
 bridge-$(CONFIG_BRIDGE_VLAN_FILTERING) += br_vlan.o
 
+bridge-$(CONFIG_TRILL) += rbridge/rbr.o
+
 obj-$(CONFIG_BRIDGE_NF_EBTABLES) += netfilter/
