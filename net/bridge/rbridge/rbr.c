@@ -228,7 +228,88 @@ encaps_drop:
   return;
 }
 
+static void rbr_recv(struct sk_buff *skb, u16 vid){
+	uint16_t local_nick, dtrNick;
+	struct rbr *rbr;
+	uint8_t srcaddr[ETH_ALEN];
+	struct trill_hdr *trh;
+	size_t trhsize;
+	struct net_bridge_port *p ;
+	u16 trill_flags;
 
+	if (skb == NULL)
+		return;
+	p = br_port_get_rcu(skb->dev);
+	if (!p || p->state == BR_STATE_DISABLED){
+	  pr_warn_ratelimited("rbr_recv: port error\n");
+	  goto recv_drop;
+	}
+	else{
+	  rbr = p->br->rbr;
+	}
+	memcpy(srcaddr, eth_hdr(skb)->h_source, ETH_ALEN);
+	trh = (struct trill_hdr *)skb->data;
+	trill_flags = ntohs(trh->th_flags);
+	trhsize = sizeof(struct trill_hdr) + trill_get_optslen(trill_flags);
+	if (skb->len < trhsize + ETH_HLEN) {
+	  pr_warn_ratelimited("rbr_recv:sk_buff len is less then minimal len\n");
+	  goto recv_drop;
+	}
+	if (!skb->encapsulation) {
+	  skb_pull(skb,trhsize + ETH_HLEN);
+	  skb_reset_inner_headers(skb);
+	  skb->encapsulation = 1;
+	  skb_push(skb,trhsize + ETH_HLEN);
+	}
+	if (!VALID_NICK(trh->th_ingressnick) || (!VALID_NICK(trh->th_egressnick)))
+	{
+	  pr_warn_ratelimited("rbr_recv: invalid nickname \n");
+	  goto recv_drop;
+	}
+
+	if( trill_get_version(trill_flags) != TRILL_PROTOCOL_VERS) {
+	      pr_warn_ratelimited("rbr_recv: not the same trill version\n");
+		goto recv_drop;
+	}
+	local_nick = rbr->nick;
+	dtrNick = rbr->treeroot;
+	if (trh->th_ingressnick == local_nick){
+	  pr_warn_ratelimited("rbr_recv:looping back frame check your config\n");
+	  goto recv_drop;
+	}
+	if (trill_get_optslen(trill_flags)){
+	  pr_warn_ratelimited("Found unknown TRILL header extension\n");
+	  goto recv_drop;
+	  }
+
+	if (!trill_get_multidest(trill_flags)) {
+	      /* ntohs not needed as the 2 are in the same bit form */
+		if (trh->th_egressnick == trh->th_ingressnick)
+		  {
+		    pr_warn_ratelimited("rbr_recv: egressnick == ingressnick\n");
+		    goto recv_drop;
+		  }
+		if (trh->th_egressnick == local_nick) {
+		  /* TODO decapsulate function */
+		}
+		else if (trill_get_hopcount(trill_flags)) {
+			br_fdb_update(p->br, p, srcaddr, vid);
+			/* TODO simple forwarding */
+		} else{
+		  pr_warn_ratelimited("rbr_recv: hop count limit reached\n");
+		  goto recv_drop;
+		}
+		return;
+	}
+
+	return;
+
+recv_drop:
+	if (skb)
+		kfree_skb(skb);
+	return;
+
+}
 /* handling function hook allow handling
  * a frame upon reception called via
  * br_handle_frame_hook = rbr_handle_frame
@@ -296,7 +377,7 @@ rx_handler_result_t rbr_handle_frame(struct sk_buff **pskb)
 		}else{
 		      /* packet is not from guest port and trill is enabled */
 			if (eth_hdr(skb)->h_proto == __constant_htons(ETH_P_TRILL)) {
-				/* TODO trill frame receive handler */
+				rbr_recv(skb, vid);
 				return RX_HANDLER_CONSUMED;
 			}
 			else{
