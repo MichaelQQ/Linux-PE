@@ -839,4 +839,6 @@ static inline int br_sysfs_addbr(struct net_device *dev) { return 0; }
 static inline void br_sysfs_delbr(struct net_device *dev) { return; }
 #endif /* CONFIG_SYSFS */
 
+/* rbridge/rbr.c */
+extern rx_handler_result_t rbr_handle_frame(struct sk_buff **pskb);
 #endif
