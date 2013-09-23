@@ -53,7 +53,32 @@ struct rbr {
   struct net_bridge	*br;
 };
 
-int set_treeroot(struct rbr *rbr, uint16_t treeroot);
+static inline void rbr_node_free(struct rbr_node *rbr_node){
+  if (rbr_node!=NULL){
+    if (rbr_node->rbr_ni!=NULL)
+	kfree(rbr_node->rbr_ni);
+    kfree(rbr_node);
+  }
+}
+static inline void rbr_node_get(struct rbr_node *rbr_node)
+{
+  if (rbr_node!=NULL){
+    atomic_inc(&rbr_node->refs);
+  }
+}
+static inline void rbr_node_put (struct rbr_node *rbr_node)
+{
+  if (rbr_node){
+    if (likely(atomic_dec_and_test(&rbr_node->refs))){
+	rbr_node_free(rbr_node);
+    }
+  }
+}
+
+extern int set_treeroot(struct rbr *rbr, uint16_t treeroot);
+extern struct rbr_node *rbr_find_node(struct rbr* rbr, __u16 nickname);
+extern int rbr_del_node(struct rbr *rbr, uint16_t nickname);
+extern void rbr_del_all(struct rbr *rbr);
 /* Access the adjacency nick list at the end of rbr_nickinfo */
 #define	RBR_NI_ADJNICKSPTR(v) ((uint16_t *)((struct rbr_nickinfo *)(v)+1))
 #define	RBR_NI_ADJNICK(v, n) (RBR_NI_ADJNICKSPTR(v)[(n)])
