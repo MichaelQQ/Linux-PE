@@ -21,6 +21,7 @@
 #include <linux/if_vlan.h>
 #ifdef CONFIG_TRILL
 #include "rbridge/rbr_private.h"
+#include "rbridge/rbr_netlink.h"
 #endif
 
 #define BR_HASH_BITS 8
