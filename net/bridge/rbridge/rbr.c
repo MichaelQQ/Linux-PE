@@ -184,7 +184,96 @@ dest_fwd_fail:
 	return;
 }
 
+static int rbr_multidest_fwd(struct net_bridge_port *p,
+				     struct sk_buff *skb,
+				     uint16_t egressnick,
+				     uint16_t ingressnick,
+				     const uint8_t *saddr,
+				     u16 vid,
+				     bool free
+				    )
+{
+	struct rbr *rbr;
+	int i;
+	uint16_t adjnick;
+	struct rbr_node *dest;
+	struct rbr_node *adj;
+	struct sk_buff *skb2;
+	uint16_t adjnicksaved = 0;
+	bool nicksaved = false;
+	if (skb == NULL)
+	  return -1;
+	if (!p || p->state == BR_STATE_DISABLED){
+	  pr_warn_ratelimited("rbr_multidest_fwd:port error\n");
+	  goto multidest_fwd_fail;
+	}
+	rbr = p->br->rbr;
+	if (rbr == NULL)
+		return -1;
+	/* Lookup the egress nick info, this is the DT root */
+	if ((dest = rbr_find_node(rbr, egressnick)) == NULL){
+	    pr_warn_ratelimited("rbr_multidest_fwd: unable to find egress\n");
+	    goto multidest_fwd_fail;
+	}
 
+	/* Send a copy to all our adjacencies on the DT root */
+	for (i = 0; i < dest->rbr_ni->adjcount; i++) {
+		/* Check for a valid adjacency node */
+		adjnick = RBR_NI_ADJNICK(dest->rbr_ni,i);
+		if (!VALID_NICK(adjnick) || ingressnick == adjnick ||
+		    ((adj = rbr_find_node(rbr, adjnick)) == NULL)){
+			continue;
+		}
+		/* Do not forward back to adjacency that sent the pkt to us */
+		if ((saddr != NULL) &&
+		    (memcmp(adj->rbr_ni->adjsnpa, saddr, ETH_ALEN) == 0)) {
+			rbr_node_put(adj);
+			continue;
+		}
+
+		/* save the first found adjacency to avoid coping SKB
+		 * if no other adjacency is found later no frame copy will be made
+		 * if other adjacency will be found frame will be copied
+		 * and forwarded to them if skb is needed after rbr_multidest_fwd
+		 * copy of the first skb skb will be forced
+		 */
+		if (!nicksaved && free) {
+			adjnicksaved = adjnick;
+			nicksaved = true;
+			rbr_node_put(adj);
+			continue;
+		}
+		/* FIXME using copy instead of clone as
+		 * we are going to modify dest adress
+		 */
+		if ((skb2 = skb_copy(skb, GFP_ATOMIC)) == NULL){
+			p->br->dev->stats.tx_dropped++;
+			pr_warn_ratelimited("rbr_multidest_fwd:skb_copy failed\n");
+			goto multidest_fwd_fail;
+		}
+		rbr_fwd(p, skb2, adjnick, vid);
+		rbr_node_put(adj);
+	}
+	rbr_node_put(dest);
+
+	/* if nicksave is false it means that copy will not be forwarded
+	 * as no availeble ajacency was found in such a case frame should
+	 * be dropped
+	 */
+
+	if (nicksaved) {
+		rbr_fwd(p, skb, adjnicksaved, vid);
+	}
+	else{
+	  if (skb)
+	    kfree_skb(skb);
+	}
+	return 0;
+multidest_fwd_fail:
+     if (skb)
+       kfree_skb(skb);
+    return -1;
+}
 static bool rbr_encaps(struct sk_buff *skb,
 						uint16_t ingressnick,
 						uint16_t egressnick,
@@ -270,7 +359,7 @@ static void rbr_encaps_prepare(struct sk_buff *skb, uint16_t egressnick, u16 vid
 		br_flood_deliver_vif(p->br, skb2);
 		if(rbr_encaps(skb, local_nick, dtrNick, 1))
 		  goto encaps_drop;
-		/* TODO multi forwarding  */
+		rbr_multidest_fwd(p, skb, dtrNick, local_nick, NULL, vid, true);
 	}
 	else
 	{
@@ -484,8 +573,12 @@ static void rbr_recv(struct sk_buff *skb, u16 vid){
 		goto recv_drop;
 	}
 
-	/* TODO multi forwarding  */
-
+	if (rbr_multidest_fwd(p, skb2, trh->th_egressnick,
+						trh->th_ingressnick,
+						srcaddr,
+						vid,
+						false))
+	  goto recv_drop;
 	/*
 	 * Send de-capsulated frame locally
 	 */
