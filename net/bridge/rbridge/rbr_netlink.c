@@ -40,8 +40,38 @@ static int trill_cmd_add_nicks_info(struct sk_buff *skb, struct genl_info *info)
 }
 
 static int trill_cmd_set_treeroot_id(struct sk_buff *skb, struct genl_info *info){
-  /* TODO */
-  return 0;
+  int error;
+  u16 nickname;
+  struct trill_nl_header *trnlhdr;
+  struct net_device *source_port = NULL;
+  struct net *net = sock_net(skb->sk);
+  struct net_bridge_port *p = NULL;
+  struct net_bridge *br = NULL;
+  trill_genlseqnb = info->snd_seq;
+  nickname = nla_get_u16(info->attrs[TRILL_ATTR_U16]);
+  trnlhdr = info->userhdr;
+  if (trnlhdr->ifindex)
+    source_port = __dev_get_by_index(net, trnlhdr->ifindex);
+  if (source_port){
+    p = br_port_get_rcu(source_port);
+    if (p)
+    {
+	br = p->br;
+	if (br)
+	{
+	  if (br->rbr)
+	  {
+	    error = set_treeroot(br->rbr, htons(nickname));
+	    if (error)
+		return -EFAULT;
+	    else
+		return 0;
+	  }
+	}
+    }
+  }
+    printk(KERN_WARNING"trill_cmd_set_treeroot_id FAILED\n");
+    return -EFAULT;
 }
 
 /* trill_cmd_get_rbridge when started daemon inquire for already

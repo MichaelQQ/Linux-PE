@@ -67,6 +67,23 @@ static void br_trill_stop(struct net_bridge *br)
 	}
 }
 
+int set_treeroot(struct rbr *rbr, uint16_t treeroot)
+{
+
+	if(!VALID_NICK(treeroot)){
+	  pr_warn_ratelimited("rbr_set_treeroot: given tree root not valid\n");
+	  goto set_tree_root_fail;
+	}
+	if (rbr->treeroot != treeroot){
+	  spin_lock_bh(&rbr->br->lock);
+	  rbr->treeroot = treeroot;
+	  spin_unlock_bh(&rbr->br->lock);
+	}
+	return 0;
+set_tree_root_fail:
+	return ENOENT;
+}
+
 void br_trill_set_enabled(struct net_bridge *br, unsigned long val)
 {
 	if (val) {
