@@ -351,6 +351,12 @@ int br_add_if(struct net_bridge *br, struct net_device *dev)
 	if (IS_ERR(p))
 		return PTR_ERR(p);
 
+#ifdef CONFIG_TRILL
+	if(is_vif_address(dev->dev_addr))
+	  p->trill_flag = TRILL_FLAG_AUTO_ENABLE;
+	else
+	  p->trill_flag = TRILL_FLAG_DISABLE;
+#endif
 	call_netdevice_notifiers(NETDEV_JOIN, dev);
 
 	err = dev_set_promiscuity(dev, 1);

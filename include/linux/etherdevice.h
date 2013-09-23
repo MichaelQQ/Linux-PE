@@ -53,6 +53,12 @@ struct net_device *alloc_etherdev_mqs(int sizeof_priv, unsigned int txqs,
 /* Reserved Ethernet Addresses per IEEE 802.1Q */
 static const u8 eth_reserved_addr_base[ETH_ALEN] __aligned(2) =
 { 0x01, 0x80, 0xc2, 0x00, 0x00, 0x00 };
+#ifdef CONFIG_TRILL
+static const u8 eth_reserved_addr_rbridge[ETH_ALEN] __aligned(2) =
+{ 0x01, 0x80, 0xc2, 0x00, 0x00, 0x40 };
+static const u8 eth_reserved_addr_vif[ETH_ALEN] __aligned(2) =
+{ 0xfe, 0xff, 0xff, 0xff, 0xff, 0xff };
+#endif
 
 /**
  * is_link_local_ether_addr - Determine if given Ethernet address is link-local
@@ -344,5 +350,28 @@ static inline unsigned long compare_ether_header(const void *a, const void *b)
 	       (a32[1] ^ b32[1]) | (a32[2] ^ b32[2]);
 #endif
 }
+
+#ifdef CONFIG_TRILL
+/**
+ * is_rbr_address - check if it is a specific Rbridge brodcast mac address
+ * @addr1: Pointer to a six-byte array containing the Ethernet address
+ *
+ * returns true if it is a RBridge brodcast address 01:80:C2:00:00:40
+ */
+static inline bool is_rbr_address(const u8 *addr1)
+{
+  return ether_addr_equal(addr1, eth_reserved_addr_rbridge);
+}
+/**
+ * is_vif_address -heck if it is a specific vif mac address
+ * @addr1: Pointer to a six-byte array containing the Ethernet address
+ *
+ * returns true if it is a vif mac address  FE:FF:FF:FF:FF:FF
+ */
+static inline bool is_vif_address(const u8 *addr1)
+{
+  return ether_addr_equal(addr1, eth_reserved_addr_vif);
+}
+#endif
 
 #endif	/* _LINUX_ETHERDEVICE_H */
