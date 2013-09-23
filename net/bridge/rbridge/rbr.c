@@ -126,3 +126,101 @@ void br_trill_set_enabled(struct net_bridge *br, unsigned long val)
 	    br_trill_stop(br);
 	}
 }
+
+/* handling function hook allow handling
+ * a frame upon reception called via
+ * br_handle_frame_hook = rbr_handle_frame
+ * in  br.c
+ * Return NULL if skb is handled
+ * note: already called with rcu_read_lock (preempt_disabled)
+ */
+rx_handler_result_t rbr_handle_frame(struct sk_buff **pskb)
+{
+	struct net_bridge *br;
+	struct net_bridge_port *p;
+	uint16_t nick= RBRIDGE_NICKNAME_NONE;
+	struct sk_buff *skb = *pskb;
+	u16 vid = 0;
+	p = br_port_get_rcu(skb->dev);
+	br=p->br;
+	if (!p || p->state == BR_STATE_DISABLED)
+	  goto drop;
+	/* if trill is not enabled handle by bridge */
+	if (br->trill_enabled == BR_NO_TRILL){
+		goto handle_by_bridge;
+	}else{
+		if (unlikely(skb->pkt_type == PACKET_LOOPBACK))
+			return RX_HANDLER_PASS;
+		skb = skb_share_check(skb, GFP_ATOMIC);
+		if (!skb)
+			return RX_HANDLER_CONSUMED;
+		if (!is_valid_ether_addr(eth_hdr(skb)->h_source)) {
+			pr_warn_ratelimited("rbr_handle_frame:invalid src address\n");
+			goto drop;
+		}
+		if (!br_allowed_ingress(p->br, nbp_get_vlan_info(p), skb, &vid))
+		  goto drop;
+		/* don't forward any BPDU */
+		if(is_rbr_address((const u8*)&eth_hdr(skb)->h_dest)){
+			br_fdb_update(br, p, eth_hdr(skb)->h_source, vid);
+			/* BPDU has to be dropped */
+			goto drop;
+		}
+
+		if (p->trill_flag != TRILL_FLAG_DISABLE){
+		  /* check if destination is connected on the same bridge */
+		  if (is_local_guest_port(p, eth_hdr(skb)->h_dest, vid)){
+		    struct net_bridge_fdb_entry *dst;
+		    dst = __br_fdb_get(br, eth_hdr(skb)->h_dest, vid);
+		    if (dst){
+		      if (dst->dst->trill_flag != TRILL_FLAG_DISABLE){
+			  /* After migration distent vm to local node we need
+			   * to remove it nickname
+			   */
+			  br_fdb_update(br, p, eth_hdr(skb)->h_source, vid);
+			  br_deliver(dst->dst, skb);
+			  return RX_HANDLER_CONSUMED;
+		      }
+		    }
+		  }
+		 /* if packet is from guest port and trill is enabled and dest
+		  * is not a guest port encaps it
+		  */
+		  nick= get_nick_from_mac(p, eth_hdr(skb)->h_dest, vid);
+		   /* must update nickname to NONE for guest ports : migration cases */
+		  br_fdb_update(br, p, eth_hdr(skb)->h_source, vid);
+		  /* TODO encapsulate */
+		    return RX_HANDLER_CONSUMED;
+		}else{
+		      /* packet is not from guest port and trill is enabled */
+			if (eth_hdr(skb)->h_proto == __constant_htons(ETH_P_TRILL)) {
+				/* TODO trill frame receive handler */
+				return RX_HANDLER_CONSUMED;
+			}
+			else{
+			  /* packet is destinated to host port */
+			  if (is_local_host_port(p, eth_hdr(skb)->h_dest, vid)){
+			    skb->pkt_type = PACKET_HOST;
+			    br_handle_frame_finish(skb);
+			    return RX_HANDLER_CONSUMED;
+			  }
+			  /* handle arp */
+			  else if (is_broadcast_ether_addr(eth_hdr(skb)->h_dest)){
+			    /* TODO flood on all hosts port and pass frame to localhost */
+			    return RX_HANDLER_CONSUMED;
+			  }
+			  else{
+			    /* packet is not from trill type drop it */
+			    goto drop;
+			  }
+			}
+		}
+	}
+drop:
+	if (skb)
+	    kfree_skb(skb);
+	return RX_HANDLER_CONSUMED;
+handle_by_bridge:
+	/*packet is not from trill type return to standard bridge frame handle hook*/
+	return br_handle_frame(pskb);
+}
