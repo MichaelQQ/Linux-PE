@@ -127,6 +127,108 @@ void br_trill_set_enabled(struct net_bridge *br, unsigned long val)
 	}
 }
 
+static bool rbr_encaps(struct sk_buff *skb,
+						uint16_t ingressnick,
+						uint16_t egressnick,
+						bool multidest)
+{
+  struct trill_hdr *trh;
+  size_t trhsize;
+  u16 trill_flags = 0;
+  trhsize = sizeof(struct trill_hdr);
+  if (!skb->encapsulation) {
+    skb_push(skb,ETH_HLEN);
+    skb_reset_inner_headers(skb);
+    skb->encapsulation = 1;
+  }
+  if (skb_cow_head(skb, trhsize + ETH_HLEN))
+  {
+    printk(KERN_ERR "rbr_encaps: cow_head failed\n");
+    return 1;
+  }
+  trh = (struct trill_hdr *) skb_push(skb, sizeof(*trh));
+  trill_flags = trill_flags |
+		  trill_set_version(TRILL_PROTOCOL_VERS) |
+		  trill_set_hopcount(TRILL_DEFAULT_HOPS) |
+		  trill_set_multidest(multidest ? 1 : 0);
+  trh->th_flags = htons(trill_flags);
+  trh->th_egressnick = egressnick;
+  trh->th_ingressnick = ingressnick; /* self nick name */
+  skb_push(skb, ETH_HLEN); /* make skb->mac_header point to outer mac header */
+  skb_reset_mac_header(skb); /* instead of the inner one */
+  eth_hdr(skb)->h_proto = __constant_htons(ETH_P_TRILL);
+  /* make skb->data point to the right place (just after ether header) */
+  skb_pull(skb, ETH_HLEN);
+  skb_reset_mac_len(skb);
+  return 0;
+}
+static void rbr_encaps_prepare(struct sk_buff *skb, uint16_t egressnick, u16 vid){
+	uint16_t local_nick;
+	uint16_t dtrNick;
+	struct rbr_node *self;
+	struct sk_buff *skb2;
+	struct rbr *rbr;
+	struct net_bridge_port *p;
+	p = br_port_get_rcu(skb->dev);
+	if (!p || p->state == BR_STATE_DISABLED){
+	  pr_warn_ratelimited("rbr_encaps_prepare: port error\n");
+	  goto encaps_drop;
+	}
+	else{
+	  rbr = p->br->rbr;
+	}
+	/*test if SKB still exist if not no need to do anything*/
+	if (skb == NULL)
+		return;
+	if (egressnick != RBRIDGE_NICKNAME_NONE && !VALID_NICK(egressnick)){
+	  pr_warn_ratelimited("rbr_encaps_prepare: invalid destinaton nickname\n");
+	  goto encaps_drop;
+	}
+	local_nick = rbr->nick;
+	if (!VALID_NICK(local_nick)){
+	  pr_warn_ratelimited("rbr_encaps_prepare: invalid local nickname\n");
+	  goto encaps_drop;
+	}
+	if (egressnick == RBRIDGE_NICKNAME_NONE) {
+	  /* Daemon has not yet sent the local nickname */
+		if ((self= rbr_find_node(rbr,local_nick))== NULL){
+		  pr_warn_ratelimited("rbr_encaps_prepare: waiting for nickname\n");
+		  goto encaps_drop;
+		}
+		if(self->rbr_ni->dtrootcount > 0 )
+		  dtrNick = RBR_NI_DTROOTNICK(self->rbr_ni, 0);
+		else
+		  dtrNick = rbr->treeroot;
+		rbr_node_put(self);
+		if (!VALID_NICK(dtrNick)){
+		  pr_warn_ratelimited("rbr_encaps_prepare: dtrNick is unvalid\n");
+		  goto encaps_drop;
+		}
+		if ((skb2 = skb_clone(skb, GFP_ATOMIC)) == NULL) {
+			p->br->dev->stats.tx_dropped++;
+			pr_warn_ratelimited("rbr_encaps_prepare: skb_clone failed \n");
+			goto encaps_drop;
+		}
+		br_flood_deliver_vif(p->br, skb2);
+		if(rbr_encaps(skb, local_nick, dtrNick, 1))
+		  goto encaps_drop;
+		/* TODO multi forwarding  */
+	}
+	else
+	{
+	  if(rbr_encaps(skb, local_nick, egressnick, 0))
+	    goto encaps_drop;
+	  /* TODO simple forwarding */
+	}
+	return;
+
+encaps_drop:
+  if (skb)
+     kfree_skb(skb);
+  return;
+}
+
+
 /* handling function hook allow handling
  * a frame upon reception called via
  * br_handle_frame_hook = rbr_handle_frame
@@ -187,10 +289,10 @@ rx_handler_result_t rbr_handle_frame(struct sk_buff **pskb)
 		  * is not a guest port encaps it
 		  */
 		  nick= get_nick_from_mac(p, eth_hdr(skb)->h_dest, vid);
-		   /* must update nickname to NONE for guest ports : migration cases */
+		  /* must update nickname to NONE for guest ports : migration cases */
 		  br_fdb_update(br, p, eth_hdr(skb)->h_source, vid);
-		  /* TODO encapsulate */
-		    return RX_HANDLER_CONSUMED;
+		  rbr_encaps_prepare(skb, nick, vid);
+		  return RX_HANDLER_CONSUMED;
 		}else{
 		      /* packet is not from guest port and trill is enabled */
 			if (eth_hdr(skb)->h_proto == __constant_htons(ETH_P_TRILL)) {
