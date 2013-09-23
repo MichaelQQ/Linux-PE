@@ -397,6 +397,9 @@ static struct net_bridge_fdb_entry *fdb_create(struct hlist_head *head,
 		fdb->vlan_id = vid;
 		fdb->is_local = 0;
 		fdb->is_static = 0;
+#ifdef CONFIG_TRILL
+		fdb->nick = RBRIDGE_NICKNAME_NONE;
+#endif
 		fdb->updated = fdb->used = jiffies;
 		hlist_add_head_rcu(&fdb->hlist, head);
 	}
@@ -473,6 +476,14 @@ void br_fdb_update(struct net_bridge *br, struct net_bridge_port *source,
 			/* fastpath: update of existing entry */
 			fdb->dst = source;
 			fdb->updated = jiffies;
+			/* br_fdb_update must reset nick to RBRIDGE_NICKNAME_NONE
+			 * this is used to avoid inconsistant data after a
+			 * live migration from distant node to local one.
+			 * if need to concerve nickname use br_fdb_update_nick instead
+			 */
+#ifdef CONFIG_TRILL
+			fdb->nick = RBRIDGE_NICKNAME_NONE;
+#endif
 		}
 	} else {
 		spin_lock(&br->hash_lock);
@@ -834,3 +845,95 @@ int br_fdb_delete(struct ndmsg *ndm, struct nlattr *tb[],
 out:
 	return err;
 }
+
+#ifdef CONFIG_TRILL
+/* br_fdb_update_nick_addr: used to insert correspondant nick to address
+ * used only on ingress/Egress Rbridge (those how encapsulate
+ * and decapsulate frames)
+ * must be called while decapsulating to learn nick <-> mac correspondance
+ */
+void br_fdb_update_nick(struct net_bridge *br, struct net_bridge_port *source,
+				const unsigned char *addr, u16 vid, u16 nick)
+{
+  struct hlist_head *head = &br->hash[br_mac_hash(addr, vid)];
+  struct net_bridge_fdb_entry *fdb;
+  /* some users want to always flood. */
+  if (hold_time(br) == 0)
+    return;
+  /* ignore packets unless we are using this port */
+  if (!(source->state == BR_STATE_LEARNING ||
+    source->state == BR_STATE_FORWARDING))
+    return;
+  fdb = fdb_find_rcu(head, addr, vid);
+  if (likely(fdb)) {
+    /* attempt to update an entry for a local interface */
+    if (unlikely(fdb->is_local)) {
+	if (net_ratelimit())
+	  printk(KERN_WARNING "%s: received packet with "
+	  "own address as source address\n",
+	  source->dev->name);
+    } else {
+	/* fastpath: update of existing entry */
+	fdb->dst = source;
+	fdb->nick = nick;
+	fdb->updated = jiffies;
+    }
+  } else {
+    spin_lock(&br->hash_lock);
+    if (likely(!fdb_find(head, addr, vid))) {
+	fdb = fdb_create(head, source, addr, vid);
+	fdb->nick = nick;
+	if (fdb)
+	  fdb_notify(br, fdb, RTM_NEWNEIGH);
+    }
+    /* else  we lose race and someone else inserts
+     * it first, don't bother updating
+     */
+    spin_unlock(&br->hash_lock);
+  }
+}
+
+/* get_nick_from_mac: used to get correspondant nick to Mac address
+ * used only on ingress/Egress Rbridge (those how encapsulate
+ * and decapsulate frames)
+ * must be called while encapsulating  to get mac <-> nick correspondance
+ */
+uint16_t get_nick_from_mac(struct net_bridge_port *p, unsigned char* dest, u16 vid)
+{
+  struct hlist_head *head = &p->br->hash[br_mac_hash(dest, vid)];
+  struct net_bridge_fdb_entry *fdb;
+  if (is_multicast_ether_addr(dest))
+    return RBRIDGE_NICKNAME_NONE;
+  fdb = fdb_find(head, dest, vid);
+  if (likely(fdb))
+    return fdb->nick;
+  return RBRIDGE_NICKNAME_NONE;
+}
+
+/* is_local_guest_port: check if given mac address is a local guest
+ * used to forward frame locally between guest without encapsulating them
+ */
+int is_local_guest_port(struct net_bridge_port *p, unsigned char* dest, u16 vid)
+{
+  struct hlist_head *head = &p->br->hash[br_mac_hash(dest, vid)];
+  struct net_bridge_fdb_entry *fdb;
+  fdb = fdb_find(head, dest, vid);
+  if (likely(fdb)) {
+    return fdb->dst->trill_flag;
+  }
+  return 0;
+}
+/* is_local_host_port: check if given mac address is a local non trill flagged port
+ * used to filter traffic destined to the Host
+ */
+int is_local_host_port(struct net_bridge_port *p, unsigned char* dest, u16 vid)
+{
+  struct hlist_head *head = &p->br->hash[br_mac_hash(dest, vid)];
+  struct net_bridge_fdb_entry *fdb;
+  fdb = fdb_find(head, dest, vid);
+  if (likely(fdb)) {
+    return fdb->is_local;
+  }
+  return 0;
+}
+#endif

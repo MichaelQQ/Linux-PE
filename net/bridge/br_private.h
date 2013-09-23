@@ -117,6 +117,9 @@ struct net_bridge_fdb_entry
 	unsigned char			is_local;
 	unsigned char			is_static;
 	__u16				vlan_id;
+#ifdef CONFIG_TRILL
+	__u16				nick; /* destination's nickname */
+#endif
 };
 
 struct net_bridge_port_group {
@@ -423,6 +426,16 @@ int br_fdb_add(struct ndmsg *nlh, struct nlattr *tb[], struct net_device *dev,
 	       const unsigned char *addr, u16 nlh_flags);
 int br_fdb_dump(struct sk_buff *skb, struct netlink_callback *cb,
 		struct net_device *dev, int idx);
+#ifdef CONFIG_TRILL
+void br_fdb_update_nick(struct net_bridge *br,
+			struct net_bridge_port *source,
+			const unsigned char *addr,
+			u16 vid,
+			uint16_t nick);
+uint16_t get_nick_from_mac(struct net_bridge_port *p, unsigned char* dest, u16 vid);
+int is_local_guest_port(struct net_bridge_port *p, unsigned char* dest, u16 vid);
+int is_local_host_port(struct net_bridge_port *p, unsigned char* dest, u16 vid);
+#endif
 
 /* br_forward.c */
 void br_deliver(const struct net_bridge_port *to, struct sk_buff *skb);
