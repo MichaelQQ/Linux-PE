@@ -47,7 +47,7 @@ static void br_trill_start(struct net_bridge *br)
 		spin_unlock_bh(&br->lock);
 	}
 	else {
-		printk(KERN_WARNING"RBridge allocation for bridge '%s' failed\n", br->dev->name);
+		printk(KERN_WARNING "RBridge allocation for bridge '%s' failed\n", br->dev->name);
 	}
 }
 
