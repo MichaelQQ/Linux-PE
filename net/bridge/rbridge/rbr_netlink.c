@@ -52,7 +52,7 @@ int create_node(struct net_bridge_port *p,
   if ((old == NULL) || (old_size != size) || ( memcmp(old->rbr_ni, rbr_ni, size)))
   {
     struct rbr_node *new;
-    new = kzalloc(sizeof(struct rbr_node),GFP_KERNEL);
+    new = kzalloc(sizeof(*old),GFP_KERNEL);
     if (!new)
 	{
 	  kfree(rbr_ni);
@@ -80,7 +80,7 @@ static int trill_cmd_set_nicks_info(struct sk_buff *skb, struct genl_info *info)
   struct net_bridge_port *p = NULL;
   struct net_bridge *br = NULL;
   trill_genlseqnb = info->snd_seq;
-  nla_memcpy(&rbr_ni, info->attrs[TRILL_ATTR_BIN], sizeof(struct rbr_nickinfo));
+  nla_memcpy(&rbr_ni, info->attrs[TRILL_ATTR_BIN], sizeof(rbr_ni));
   if (!VALID_NICK(rbr_ni.nick))
     return -EFAULT;
   trnlhdr = info->userhdr;
@@ -117,7 +117,7 @@ static int trill_cmd_get_nicks_info(struct sk_buff *skb, struct genl_info *info)
   struct net_bridge_port *p = NULL;
   struct net_bridge *br = NULL;
   trill_genlseqnb = info->snd_seq;
-  nla_memcpy(&rbr_ni, info->attrs[TRILL_ATTR_BIN], sizeof(struct rbr_nickinfo));
+  nla_memcpy(&rbr_ni, info->attrs[TRILL_ATTR_BIN], sizeof(rbr_ni));
   trnlhdr = info->userhdr;
   if (trnlhdr->ifindex)
     source_port = __dev_get_by_index(net,trnlhdr->ifindex);
@@ -135,7 +135,7 @@ static int trill_cmd_get_nicks_info(struct sk_buff *skb, struct genl_info *info)
 	    msg = nlmsg_new(NLMSG_DEFAULT_SIZE, GFP_KERNEL);
 	    trnlhdr = genlmsg_put(msg, info->snd_portid, trill_genlseqnb,
 						&trill_genl_family,
-						sizeof(struct trill_nl_header),
+						sizeof(*trnlhdr),
 						TRILL_CMD_GET_NICKS_INFO);
 	    attr = nla_reserve(msg, TRILL_ATTR_BIN,
 				     RBR_NI_TOTALSIZE(rbr_node->rbr_ni));
@@ -226,7 +226,7 @@ static int trill_cmd_get_rbridge(struct sk_buff *skb, struct genl_info *info){
     msg = nlmsg_new(NLMSG_DEFAULT_SIZE, GFP_KERNEL);
     trnlhdr = genlmsg_put(msg, info->snd_portid, trill_genlseqnb,
 				  &trill_genl_family,
-				  sizeof(struct trill_nl_header),
+				  sizeof(*trnlhdr),
 				  TRILL_CMD_GET_RBRIDGE);
     trnlhdr->ifindex = KERNL_RESPONSE_INTERFACE;
     nla_put_u16(msg, TRILL_ATTR_U16, nickname);

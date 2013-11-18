@@ -18,7 +18,7 @@ static struct rbr *add_rbr(struct net_bridge *br)
   struct rbr *rbr;
   char rbr_name[IFNAMSIZ];
   if (!br->rbr){
-    rbr = kzalloc(sizeof(struct rbr), GFP_KERNEL);
+    rbr = kzalloc(sizeof(*rbr), GFP_KERNEL);
     if(!rbr)
 	return NULL;
     strcpy(rbr_name, "");
@@ -282,7 +282,7 @@ static bool rbr_encaps(struct sk_buff *skb,
   struct trill_hdr *trh;
   size_t trhsize;
   u16 trill_flags = 0;
-  trhsize = sizeof(struct trill_hdr);
+  trhsize = sizeof(*trh);
   if (!skb->encapsulation) {
     skb_push(skb,ETH_HLEN);
     skb_reset_inner_headers(skb);
@@ -293,7 +293,7 @@ static bool rbr_encaps(struct sk_buff *skb,
     printk(KERN_ERR "rbr_encaps: cow_head failed\n");
     return 1;
   }
-  trh = (struct trill_hdr *) skb_push(skb, sizeof(*trh));
+  trh = (struct trill_hdr *) skb_push(skb, trhsize);
   trill_flags = trill_flags |
 		  trill_set_version(TRILL_PROTOCOL_VERS) |
 		  trill_set_hopcount(TRILL_DEFAULT_HOPS) |
@@ -441,7 +441,7 @@ static void rbr_recv(struct sk_buff *skb, u16 vid){
 	memcpy(srcaddr, eth_hdr(skb)->h_source, ETH_ALEN);
 	trh = (struct trill_hdr *)skb->data;
 	trill_flags = ntohs(trh->th_flags);
-	trhsize = sizeof(struct trill_hdr) + trill_get_optslen(trill_flags);
+	trhsize = sizeof(*trh) + trill_get_optslen(trill_flags);
 	if (skb->len < trhsize + ETH_HLEN) {
 	  pr_warn_ratelimited("rbr_recv:sk_buff len is less then minimal len\n");
 	  goto recv_drop;
