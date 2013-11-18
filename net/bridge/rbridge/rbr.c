@@ -12,7 +12,7 @@
  *	2 of the License, or (at your option) any later version.
  */
 
-#include "../br_private.h"
+#include "rbr_private.h"
 
 static struct rbr *add_rbr(struct net_bridge *br)
 {

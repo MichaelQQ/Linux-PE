@@ -2,7 +2,6 @@
 #include <net/netlink.h>
 #include <linux/if_trill.h>
 #include <linux/socket.h>
-#include "../br_private.h"
 #include "rbr_netlink.h"
 
 int trill_genlseqnb = 0; /*sequence number*/
