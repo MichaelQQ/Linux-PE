@@ -35,9 +35,7 @@ static struct rbr *add_rbr(struct net_bridge *br)
 		spin_unlock_bh(&br->lock);
 		return rbr;
 	}
-	else {
-		return br->rbr;
-	}
+	return br->rbr;
 }
 
 static void br_trill_start(struct net_bridge *br)
