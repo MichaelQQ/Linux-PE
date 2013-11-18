@@ -20,7 +20,6 @@
 #define TRILL_NL_VERSION 0x1
 #define TRILL_NL_FAMILY  "TRILL_NL"
 #define TRILL_MCAST_NAME "TR_NL_MCAST"
-#include "rbr_private.h"
 
 struct trill_nl_header {
 	int ifindex;  /* port id */
