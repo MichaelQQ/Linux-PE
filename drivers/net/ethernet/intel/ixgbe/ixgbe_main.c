@@ -1445,6 +1445,9 @@ static unsigned int ixgbe_get_headlen(unsigned char *data,
 	__be16 protocol;
 	u8 nexthdr = 0;	/* default to not TCP */
 	u8 hlen;
+#ifdef CONFIG_TRILL
+	u8 trill_op_len;
+#endif
 
 	/* this should never happen, but better safe than sorry */
 	if (max_len < ETH_HLEN)
@@ -1470,9 +1473,10 @@ static unsigned int ixgbe_get_headlen(unsigned char *data,
 	if (protocol == __constant_htons(ETH_P_TRILL)) {
 	  if ((hdr.network - data) > (max_len - sizeof(hdr.trill)))
 			return max_len;
+		trill_op_len = trill_get_optslen(hdr.trill->th_flags);
 		hdr.network += sizeof(hdr.trill);
-		if(trill_get_optslen(hdr.trill->th_flags))
-		  hdr.network += sizeof(hdr.trill_opt);
+		if (trill_op_len)
+			hdr.network += trill_op_len;
 		/*inner header*/
 		protocol = hdr.eth2->h_proto;
 		hdr.network += ETH_HLEN;
