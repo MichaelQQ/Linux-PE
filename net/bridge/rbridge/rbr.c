@@ -53,7 +53,7 @@ static void rbr_del_node(struct rbr *rbr, uint16_t nickname)
 
 static void rbr_del_all(struct rbr *rbr)
 {
-	int i;
+	unsigned int i;
 
 	for (i = RBRIDGE_NICKNAME_MIN; i < RBRIDGE_NICKNAME_MAX; i++) {
 		if (rbr->rbr_nodes[i] != NULL)
@@ -198,7 +198,7 @@ static int rbr_multidest_fwd(struct net_bridge_port *p,
 	uint16_t adjnicksaved = 0;
 	uint16_t adjnick;
 	bool nicksaved = false;
-	int i;
+	unsigned int i;
 
 	if (skb == NULL)
 		return -1;
