@@ -53,7 +53,7 @@ static void br_trill_start(struct net_bridge *br)
 
 static void br_trill_stop(struct net_bridge *br)
 {
-	struct rbr * old;
+	struct rbr *old;
 
 	spin_lock_bh(&br->lock);
 	br->trill_enabled = BR_NO_TRILL;
