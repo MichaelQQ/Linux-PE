@@ -95,20 +95,17 @@ struct rbr_node *rbr_find_node(struct rbr *rbr, __u16 nickname)
 	return rbr_node;
 }
 
-int rbr_del_node(struct rbr *rbr, uint16_t nickname)
+static void rbr_del_node(struct rbr *rbr, uint16_t nickname)
 {
 	struct rbr_node *rbr_node;
-	int ret = ENOENT;
 
 	if (VALID_NICK(nickname)) {
 		rbr_node = rbr->rbr_nodes[nickname];
 		if (rbr_node != NULL) {
 			rcu_assign_pointer(rbr->rbr_nodes[nickname], NULL);
 			rbr_node_put(rbr_node);
-			ret = 0;
 		}
 	}
-        return ret;
 }
 
 void rbr_del_all(struct rbr *rbr)
@@ -117,7 +114,7 @@ void rbr_del_all(struct rbr *rbr)
 
 	for (i = RBRIDGE_NICKNAME_MIN; i < RBRIDGE_NICKNAME_MAX; i++) {
 		if (rbr->rbr_nodes[i] != NULL)
-			(void) rbr_del_node(rbr, i);
+			rbr_del_node(rbr, i);
 	}
 }
 
