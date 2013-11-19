@@ -219,11 +219,10 @@ static int rbr_multidest_fwd(struct net_bridge_port *p,
 	/* Send a copy to all our adjacencies on the DT root */
 	for (i = 0; i < dest->rbr_ni->adjcount; i++) {
 		/* Check for a valid adjacency node */
-		adjnick = RBR_NI_ADJNICK(dest->rbr_ni,i);
+		adjnick = RBR_NI_ADJNICK(dest->rbr_ni, i);
 		if (!VALID_NICK(adjnick) || ingressnick == adjnick ||
-		    ((adj = rbr_find_node(rbr, adjnick)) == NULL)) {
+			((adj = rbr_find_node(rbr, adjnick)) == NULL))
 			continue;
-		}
 		/* Do not forward back to adjacency that sent the pkt to us */
 		if ((saddr != NULL) &&
 		    (memcmp(adj->rbr_ni->adjsnpa, saddr, ETH_ALEN) == 0)) {
@@ -284,7 +283,7 @@ static bool rbr_encaps(struct sk_buff *skb, uint16_t ingressnick,
 
 	trhsize = sizeof(*trh);
 	if (!skb->encapsulation) {
-		skb_push(skb,ETH_HLEN);
+		skb_push(skb, ETH_HLEN);
 		skb_reset_inner_headers(skb);
 		skb->encapsulation = 1;
 	}
@@ -334,27 +333,27 @@ static void rbr_encaps_prepare(struct sk_buff *skb, uint16_t egressnick, u16 vid
 	}
 	local_nick = rbr->nick;
 	if (!VALID_NICK(local_nick)) {
-	  pr_warn_ratelimited("rbr_encaps_prepare: invalid local nickname\n");
-	  goto encaps_drop;
+		pr_warn_ratelimited("rbr_encaps_prepare: invalid local nickname\n");
+		goto encaps_drop;
 	}
 	if (egressnick == RBRIDGE_NICKNAME_NONE) {
-	  /* Daemon has not yet sent the local nickname */
-		if ((self= rbr_find_node(rbr,local_nick))== NULL) {
-		  pr_warn_ratelimited("rbr_encaps_prepare: waiting for nickname\n");
-		  goto encaps_drop;
+		/* Daemon has not yet sent the local nickname */
+		if ((self = rbr_find_node(rbr, local_nick))== NULL) {
+			pr_warn_ratelimited("rbr_encaps_prepare: waiting for nickname\n");
+			goto encaps_drop;
 		}
-		if (self->rbr_ni->dtrootcount > 0 )
+		if (self->rbr_ni->dtrootcount > 0)
 			dtrNick = RBR_NI_DTROOTNICK(self->rbr_ni, 0);
 		else
 			dtrNick = rbr->treeroot;
 		rbr_node_put(self);
 		if (!VALID_NICK(dtrNick)) {
-		  pr_warn_ratelimited("rbr_encaps_prepare: dtrNick is unvalid\n");
-		  goto encaps_drop;
+			pr_warn_ratelimited("rbr_encaps_prepare: dtrNick is unvalid\n");
+			goto encaps_drop;
 		}
 		if ((skb2 = skb_clone(skb, GFP_ATOMIC)) == NULL) {
 			p->br->dev->stats.tx_dropped++;
-			pr_warn_ratelimited("rbr_encaps_prepare: skb_clone failed \n");
+			pr_warn_ratelimited("rbr_encaps_prepare: skb_clone failed\n");
 			goto encaps_drop;
 		}
 		br_flood_deliver_vif(p->br, skb2);
@@ -363,8 +362,8 @@ static void rbr_encaps_prepare(struct sk_buff *skb, uint16_t egressnick, u16 vid
 		rbr_multidest_fwd(p, skb, dtrNick, local_nick, NULL, vid, true);
 	}
 	else {
-	  if (rbr_encaps(skb, local_nick, egressnick, 0))
-		goto encaps_drop;
+		if (rbr_encaps(skb, local_nick, egressnick, 0))
+			goto encaps_drop;
 		rbr_fwd(p, skb, egressnick, vid);
 	}
 	return;
@@ -449,13 +448,13 @@ static void rbr_recv(struct sk_buff *skb, u16 vid) {
 		goto recv_drop;
 	}
 	if (!skb->encapsulation) {
-		skb_pull(skb,trhsize + ETH_HLEN);
+		skb_pull(skb, trhsize + ETH_HLEN);
 		skb_reset_inner_headers(skb);
 		skb->encapsulation = 1;
-		skb_push(skb,trhsize + ETH_HLEN);
+		skb_push(skb, trhsize + ETH_HLEN);
 	}
 	if (!VALID_NICK(trh->th_ingressnick) || (!VALID_NICK(trh->th_egressnick))) {
-		pr_warn_ratelimited("rbr_recv: invalid nickname \n");
+		pr_warn_ratelimited("rbr_recv: invalid nickname\n");
 		goto recv_drop;
 	}
 
@@ -507,9 +506,8 @@ static void rbr_recv(struct sk_buff *skb, u16 vid) {
 	for (idx = 0; idx < dest->rbr_ni->adjcount; idx++) {
 		adjnick = RBR_NI_ADJNICK(dest->rbr_ni, idx);
 		adj = rbr_find_node(rbr, adjnick);
-		if (adj == NULL) {
+		if (adj == NULL)
 			continue;
-		}
 		if (memcmp(adj->rbr_ni->adjsnpa, srcaddr, ETH_ALEN) == 0) {
 			rbr_node_put(adj);
 			break;
@@ -535,12 +533,11 @@ static void rbr_recv(struct sk_buff *skb, u16 vid) {
 		goto recv_drop;
 	}
 	for (idx = 0; idx < source_node->rbr_ni->dtrootcount; idx++) {
-	  if (RBR_NI_DTROOTNICK(source_node->rbr_ni, idx) == trh->th_egressnick)
-		break;
+		if (RBR_NI_DTROOTNICK(source_node->rbr_ni, idx) == trh->th_egressnick)
+			break;
 	}
 
 	if (idx >= source_node->rbr_ni->dtrootcount) {
-
 		/* Allow receipt of forwarded frame with the highest
 		 * tree root RBridge as the egress RBridge when the
 		 * ingress RBridge has not advertised the use of any
@@ -573,13 +570,12 @@ static void rbr_recv(struct sk_buff *skb, u16 vid) {
 	}
 
 	if (rbr_multidest_fwd(p, skb2, trh->th_egressnick, trh->th_ingressnick,
-			srcaddr, vid, false))
+				srcaddr, vid, false))
 		goto recv_drop;
 
 	/*
 	 * Send de-capsulated frame locally
 	 */
-
 	rbr_decaps(p, skb, trhsize, vid);
 	return;
 
@@ -587,7 +583,6 @@ recv_drop:
 	if (skb)
 		kfree_skb(skb);
 	return;
-
 }
 
 /* handling function hook allow handling
@@ -650,8 +645,8 @@ rx_handler_result_t rbr_handle_frame(struct sk_buff **pskb)
 			/* if packet is from guest port and trill is enabled and dest
 			* is not a guest port encaps it
 			*/
-			nick= get_nick_from_mac(p, eth_hdr(skb)->h_dest, vid);
-			/* must update nickname to NONE for guest ports : migration cases */
+			nick = get_nick_from_mac(p, eth_hdr(skb)->h_dest, vid);
+			/* must update nickname to NONE for guest ports: migration cases */
 			br_fdb_update(br, p, eth_hdr(skb)->h_source, vid);
 			rbr_encaps_prepare(skb, nick, vid);
 			return RX_HANDLER_CONSUMED;

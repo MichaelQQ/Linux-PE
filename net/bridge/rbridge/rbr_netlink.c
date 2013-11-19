@@ -40,10 +40,8 @@ static struct genl_multicast_group trill_mcgrp = {
 	.name = TRILL_MCAST_NAME,
 };
 
-int create_node(struct net_bridge_port *p,
-		    struct rbr *rbr,
-		    struct rbr_nickinfo *rbr_ni_partial,
-		    struct genl_info *info)
+int create_node(struct net_bridge_port *p, struct rbr *rbr,
+		struct rbr_nickinfo *rbr_ni_partial, struct genl_info *info)
 {
 	size_t size = 0;
 	size_t old_size = 0;
@@ -58,7 +56,7 @@ int create_node(struct net_bridge_port *p,
 		pr_warn_ratelimited("create_node: size > (PAGE_SIZE-nickinfo_offset)\n");
 		return (EINVAL);
 	}
-	rbr_ni = kzalloc(size,GFP_KERNEL);
+	rbr_ni = kzalloc(size, GFP_KERNEL);
 	if (!rbr_ni)
 		return -EFAULT;
 	old = rbr->rbr_nodes[rbr_ni_partial->nick];
@@ -69,7 +67,7 @@ int create_node(struct net_bridge_port *p,
 	if ((old == NULL) || (old_size != size) ||
 			(memcmp(old->rbr_ni, rbr_ni, size))) {
 		struct rbr_node *new;
-		new = kzalloc(sizeof(*old),GFP_KERNEL);
+		new = kzalloc(sizeof(*old), GFP_KERNEL);
 		if (!new) {
 			kfree(rbr_ni);
 			return -EFAULT;
@@ -89,12 +87,12 @@ int create_node(struct net_bridge_port *p,
 
 static int trill_cmd_set_nicks_info(struct sk_buff *skb, struct genl_info *info)
 {
-  struct trill_nl_header *trnlhdr;
-  struct rbr_nickinfo rbr_ni;
-  struct net_device *source_port = NULL;
-  struct net *net = sock_net(skb->sk);
-  struct net_bridge_port *p = NULL;
-  struct net_bridge *br = NULL;
+	struct trill_nl_header *trnlhdr;
+	struct rbr_nickinfo rbr_ni;
+	struct net_device *source_port = NULL;
+	struct net *net = sock_net(skb->sk);
+	struct net_bridge_port *p = NULL;
+	struct net_bridge *br = NULL;
 
 	trill_genlseqnb = info->snd_seq;
 	nla_memcpy(&rbr_ni, info->attrs[TRILL_ATTR_BIN], sizeof(rbr_ni));
@@ -102,7 +100,7 @@ static int trill_cmd_set_nicks_info(struct sk_buff *skb, struct genl_info *info)
 		return -EFAULT;
 	trnlhdr = info->userhdr;
 	if (trnlhdr->ifindex)
-		source_port = __dev_get_by_index(net,trnlhdr->ifindex);
+		source_port = __dev_get_by_index(net, trnlhdr->ifindex);
 	if (source_port) {
 		p = br_port_get_rcu(source_port);
 		if (p) {
@@ -136,7 +134,7 @@ static int trill_cmd_get_nicks_info(struct sk_buff *skb, struct genl_info *info)
 	nla_memcpy(&rbr_ni, info->attrs[TRILL_ATTR_BIN], sizeof(rbr_ni));
 	trnlhdr = info->userhdr;
 	if (trnlhdr->ifindex)
-		source_port = __dev_get_by_index(net,trnlhdr->ifindex);
+		source_port = __dev_get_by_index(net, trnlhdr->ifindex);
 	if (source_port) {
 		p = br_port_get_rcu(source_port);
 		if (p) {
@@ -227,15 +225,14 @@ static int trill_cmd_get_rbridge(struct sk_buff *skb, struct genl_info *info)
 	trill_genlseqnb = info->snd_seq;
 	trnlhdr = info->userhdr;
 	if (trnlhdr->ifindex)
-		source_port = __dev_get_by_index(net,trnlhdr->ifindex);
+		source_port = __dev_get_by_index(net, trnlhdr->ifindex);
 	if (source_port) {
 		p = br_port_get_rcu(source_port);
 		if (p) {
 			br = p->br;
 			if (br) {
-				if (br->rbr) {
+				if (br->rbr)
 					nickname = ntohs(br->rbr->nick);
-				}
 			}
 		}
 	}
@@ -265,7 +262,7 @@ static int trill_cmd_set_rbridge(struct sk_buff *skb, struct genl_info *info)
 	trill_genlseqnb = info->snd_seq;
 	trnlhdr = info->userhdr;
 	if (trnlhdr->ifindex)
-		source_port = __dev_get_by_index(net,trnlhdr->ifindex);
+		source_port = __dev_get_by_index(net, trnlhdr->ifindex);
 	nickname = nla_get_u16(info->attrs[TRILL_ATTR_U16]);
 	if (source_port) {
 		p = br_port_get_rcu(source_port);
@@ -374,7 +371,7 @@ int __init rbridge_register_genl(void)
 	if (err)
 		goto fail1;
 	for (i = 0; i < ARRAY_SIZE(trill_genl_ops); i++)
-		err = genl_register_ops(&trill_genl_family,&trill_genl_ops[i]);
+		err = genl_register_ops(&trill_genl_family, &trill_genl_ops[i]);
 	if (err)
 		goto fail2;
 	else

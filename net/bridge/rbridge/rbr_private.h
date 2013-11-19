@@ -80,9 +80,8 @@ static inline void rbr_node_free(struct rbr_node *rbr_node)
 
 static inline void rbr_node_get(struct rbr_node *rbr_node)
 {
-	if (rbr_node!=NULL) {
+	if (rbr_node!=NULL)
 		atomic_inc(&rbr_node->refs);
-	}
 }
 
 static inline void rbr_node_put (struct rbr_node *rbr_node)
@@ -94,10 +93,10 @@ static inline void rbr_node_put (struct rbr_node *rbr_node)
 }
 
 extern int set_treeroot(struct rbr *rbr, uint16_t treeroot);
-extern struct rbr_node *rbr_find_node(struct rbr* rbr, __u16 nickname);
+extern struct rbr_node *rbr_find_node(struct rbr *rbr, __u16 nickname);
 
 /* Access the adjacency nick list at the end of rbr_nickinfo */
-#define	RBR_NI_ADJNICKSPTR(v) ((uint16_t *)((struct rbr_nickinfo *)(v)+1))
+#define	RBR_NI_ADJNICKSPTR(v) ((uint16_t *)((struct rbr_nickinfo *)(v) + 1))
 #define	RBR_NI_ADJNICK(v, n) (RBR_NI_ADJNICKSPTR(v)[(n)])
 
 /* Access the DT root nick list in rbr_nickinfo after adjacency nicks */
@@ -109,4 +108,5 @@ extern struct rbr_node *rbr_find_node(struct rbr* rbr, __u16 nickname);
 		(sizeof (uint16_t) * (v)->adjcount) + \
 		(sizeof (uint16_t) * (v)->dtrootcount)\
 		)
-#endif
+
+#endif /* !_RBR_PRIVATE_H */

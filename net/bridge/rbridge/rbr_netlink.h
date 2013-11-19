@@ -16,10 +16,10 @@
 #define RBR_NETLINK_H_
 #include "rbr_private.h"
 
-/*TRILL Generic Netlink attributes definition*/
-#define TRILL_NL_VERSION 0x1
-#define TRILL_NL_FAMILY  "TRILL_NL"
-#define TRILL_MCAST_NAME "TR_NL_MCAST"
+/* TRILL Generic Netlink attributes definition*/
+#define TRILL_NL_VERSION	0x1
+#define TRILL_NL_FAMILY		"TRILL_NL"
+#define TRILL_MCAST_NAME	"TR_NL_MCAST"
 
 struct trill_nl_header {
 	int ifindex;  /* port id */
