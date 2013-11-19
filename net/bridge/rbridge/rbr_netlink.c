@@ -169,8 +169,8 @@ static int trill_cmd_get_nicks_info(struct sk_buff *skb, struct genl_info *info)
 
 static int trill_cmd_add_nicks_info(struct sk_buff *skb, struct genl_info *info)
 {
-  /* TODO */
-  return 0;
+	/* TODO */
+	return 0;
 }
 
 static int trill_cmd_set_treeroot_id(struct sk_buff *skb, struct genl_info *info)
@@ -289,14 +289,14 @@ static int trill_cmd_set_rbridge(struct sk_buff *skb, struct genl_info *info)
 
 static int trill_cmd_port_flush(struct sk_buff *skb, struct genl_info *info)
 {
-  /* TODO */
-  return 0;
+	/* TODO */
+	return 0;
 }
 
 static int trill_cmd_nick_flush(struct sk_buff *skb, struct genl_info *info)
 {
-  /* TODO */
-  return 0;
+	/* TODO */
+	return 0;
 }
 
 static struct genl_ops trill_genl_ops[] = {
