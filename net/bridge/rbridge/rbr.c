@@ -38,6 +38,29 @@ static struct rbr *add_rbr(struct net_bridge *br)
 	return br->rbr;
 }
 
+static void rbr_del_node(struct rbr *rbr, uint16_t nickname)
+{
+	struct rbr_node *rbr_node;
+
+	if (VALID_NICK(nickname)) {
+		rbr_node = rbr->rbr_nodes[nickname];
+		if (rbr_node != NULL) {
+			rcu_assign_pointer(rbr->rbr_nodes[nickname], NULL);
+			rbr_node_put(rbr_node);
+		}
+	}
+}
+
+static void rbr_del_all(struct rbr *rbr)
+{
+	int i;
+
+	for (i = RBRIDGE_NICKNAME_MIN; i < RBRIDGE_NICKNAME_MAX; i++) {
+		if (rbr->rbr_nodes[i] != NULL)
+			rbr_del_node(rbr, i);
+	}
+}
+
 static void br_trill_start(struct net_bridge *br)
 {
 	br->rbr = add_rbr(br);
@@ -94,29 +117,6 @@ struct rbr_node *rbr_find_node(struct rbr *rbr, __u16 nickname)
 	rbr_node = rcu_dereference(rbr->rbr_nodes[nickname]);
 	rbr_node_get(rbr_node);
 	return rbr_node;
-}
-
-static void rbr_del_node(struct rbr *rbr, uint16_t nickname)
-{
-	struct rbr_node *rbr_node;
-
-	if (VALID_NICK(nickname)) {
-		rbr_node = rbr->rbr_nodes[nickname];
-		if (rbr_node != NULL) {
-			rcu_assign_pointer(rbr->rbr_nodes[nickname], NULL);
-			rbr_node_put(rbr_node);
-		}
-	}
-}
-
-void rbr_del_all(struct rbr *rbr)
-{
-	int i;
-
-	for (i = RBRIDGE_NICKNAME_MIN; i < RBRIDGE_NICKNAME_MAX; i++) {
-		if (rbr->rbr_nodes[i] != NULL)
-			rbr_del_node(rbr, i);
-	}
 }
 
 void br_trill_set_enabled(struct net_bridge *br, unsigned long val)
