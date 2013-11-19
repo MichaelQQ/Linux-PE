@@ -62,6 +62,7 @@ static void br_trill_stop(struct net_bridge *br)
 	br->rbr = NULL;
 	if (old) {
 		spin_lock_bh(&br->lock);
+		rbr_del_all(old);
 		kfree(old);
 		spin_unlock_bh(&br->lock);
 	}
