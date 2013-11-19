@@ -283,17 +283,19 @@ void br_multicast_forward(struct net_bridge_mdb_entry *mdst,
 	br_multicast_flood(mdst, skb, skb2, __br_forward);
 }
 #endif
+
 #ifdef CONFIG_TRILL
 /* called with rcu_read_lock */
 static void br_flood_vif(struct net_bridge *br, struct sk_buff *skb,
-	void (*__packet_hook)(const struct net_bridge_port *p,
-			      struct sk_buff *skb))
+		void (*__packet_hook)(const struct net_bridge_port *p,
+		struct sk_buff *skb))
 {
 	struct net_bridge_port *p;
 	struct net_bridge_port *prev;
+
 	prev = NULL;
 	list_for_each_entry_rcu(p, &br->port_list, list) {
-	  if ((should_deliver(p, skb))&& (p->trill_flag != TRILL_FLAG_DISABLE)) {
+		if ((should_deliver(p, skb))&& (p->trill_flag != TRILL_FLAG_DISABLE)) {
 			if (prev != NULL) {
 				struct sk_buff *skb2;
 				if ((skb2 = skb_clone(skb, GFP_ATOMIC)) == NULL) {
@@ -318,11 +320,12 @@ void br_flood_deliver_vif(struct net_bridge *br, struct sk_buff *skb)
 {
   br_flood_vif(br, skb, __br_deliver);
 }
+
 /* called under bridge lock */
 static void br_flood_nic(struct net_bridge *br, struct sk_buff *skb,
-			    struct sk_buff *skb0,
-	void (*__packet_hook)(const struct net_bridge_port *p,
-			      struct sk_buff *skb))
+		struct sk_buff *skb0,
+		void (*__packet_hook)(const struct net_bridge_port *p,
+		struct sk_buff *skb))
 {
 	struct net_bridge_port *p;
 	struct net_bridge_port *prev;
@@ -330,11 +333,11 @@ static void br_flood_nic(struct net_bridge *br, struct sk_buff *skb,
 	prev = NULL;
 
 	list_for_each_entry_rcu(p, &br->port_list, list) {
-		if(p->trill_flag == TRILL_FLAG_DISABLE){
-		prev = maybe_deliver(prev, p, skb, __packet_hook);
-		if (IS_ERR(prev))
-			goto out;
-		}
+		if (p->trill_flag == TRILL_FLAG_DISABLE) {
+			prev = maybe_deliver(prev, p, skb, __packet_hook);
+			if (IS_ERR(prev))
+				goto out;
+			}
 	}
 
 	if (!prev)
@@ -349,10 +352,11 @@ out:
 	if (!skb0)
 		kfree_skb(skb);
 }
+
 /* called with rcu_read_lock */
 void br_flood_forward_nic(struct net_bridge *br, struct sk_buff *skb,
-			     struct sk_buff *skb2)
+		struct sk_buff *skb2)
 {
-  br_flood_nic(br, skb, skb2, __br_forward);
+	br_flood_nic(br, skb, skb2, __br_forward);
 }
 #endif

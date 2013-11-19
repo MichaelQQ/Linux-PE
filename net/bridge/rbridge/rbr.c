@@ -83,7 +83,7 @@ set_tree_root_fail:
 	return ENOENT;
 }
 
-struct rbr_node *rbr_find_node(struct rbr* rbr, __u16 nickname)
+struct rbr_node *rbr_find_node(struct rbr *rbr, __u16 nickname)
 {
 	struct rbr_node *rbr_node;
 
@@ -154,10 +154,8 @@ int rbr_fwd_finish(struct sk_buff *skb, u16 vid)
 	return 0;
 }
 
-static void rbr_fwd(struct net_bridge_port *p,
-				 struct sk_buff *skb,
-				 uint16_t adj_nick,
-				 u16 vid)
+static void rbr_fwd(struct net_bridge_port *p, struct sk_buff *skb,
+		uint16_t adj_nick, u16 vid)
 {
 	struct rbr_node *adj;
 	struct trill_hdr *trh;
@@ -191,22 +189,18 @@ dest_fwd_fail:
 }
 
 static int rbr_multidest_fwd(struct net_bridge_port *p,
-				     struct sk_buff *skb,
-				     uint16_t egressnick,
-				     uint16_t ingressnick,
-				     const uint8_t *saddr,
-				     u16 vid,
-				     bool free
-				    )
+			struct sk_buff *skb, uint16_t egressnick,
+			uint16_t ingressnick, const uint8_t *saddr,
+			u16 vid, bool free)
 {
 	struct rbr *rbr;
-	int i;
-	uint16_t adjnick;
 	struct rbr_node *dest;
 	struct rbr_node *adj;
 	struct sk_buff *skb2;
 	uint16_t adjnicksaved = 0;
+	uint16_t adjnick;
 	bool nicksaved = false;
+	int i;
 
 	if (skb == NULL)
 		return -1;
@@ -284,13 +278,12 @@ multidest_fwd_fail:
 }
 
 static bool rbr_encaps(struct sk_buff *skb, uint16_t ingressnick,
-				uint16_t egressnick,
-				bool multidest)
+		uint16_t egressnick, bool multidest)
 {
 	struct trill_hdr *trh;
 	size_t trhsize;
-
 	u16 trill_flags = 0;
+
 	trhsize = sizeof(*trh);
 	if (!skb->encapsulation) {
 		skb_push(skb,ETH_HLEN);
@@ -432,7 +425,7 @@ static void rbr_recv(struct sk_buff *skb, u16 vid) {
 	uint8_t srcaddr[ETH_ALEN];
 	struct trill_hdr *trh;
 	size_t trhsize;
-	struct net_bridge_port *p ;
+	struct net_bridge_port *p;
 	u16 trill_flags;
 	struct sk_buff *skb2;
 	struct rbr_node *dest = NULL;
@@ -612,8 +605,8 @@ rx_handler_result_t rbr_handle_frame(struct sk_buff **pskb)
 	struct net_bridge_port *p;
 	uint16_t nick= RBRIDGE_NICKNAME_NONE;
 	struct sk_buff *skb = *pskb;
-
 	u16 vid = 0;
+
 	p = br_port_get_rcu(skb->dev);
 	br = p->br;
 	if (!p || p->state == BR_STATE_DISABLED)
