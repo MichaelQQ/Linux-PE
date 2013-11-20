@@ -60,12 +60,10 @@ struct rbr_node {
 
 struct rbr {
 	spinlock_t		lock;
-	char			name[IFNAMSIZ];
 	uint16_t		nick; /* our nickname */
 	uint16_t		treeroot; /* tree root nickname */
 	struct rbr_node		*rbr_nodes[RBRIDGE_NICKNAME_MAX];
 	uint			rbr_nodecount;
-	char			rbr_bridgename[IFNAMSIZ];
 	struct net_bridge	*br;
 };
 
