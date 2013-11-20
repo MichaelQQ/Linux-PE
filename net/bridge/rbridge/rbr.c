@@ -29,7 +29,7 @@ static struct rbr *add_rbr(struct net_bridge *br)
 		spin_lock_bh(&br->lock);
 		strncpy(rbr->name, rbr_name, IFNAMSIZ);
 		strncpy(rbr->rbr_bridgename, br->dev->name, IFNAMSIZ);
-		rbr->br = (struct net_bridge *)br;
+		rbr->br = br;
 		rbr->nick = RBRIDGE_NICKNAME_NONE;
 		rbr->treeroot = RBRIDGE_NICKNAME_NONE;
 		spin_unlock_bh(&br->lock);
