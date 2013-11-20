@@ -17,18 +17,16 @@
 static struct rbr *add_rbr(struct net_bridge *br)
 {
 	struct rbr *rbr;
-	char rbr_name[IFNAMSIZ];
+	char rbr_str[] = "_rbr";
 
 	if (!br->rbr) {
 		rbr = kzalloc(sizeof(*rbr), GFP_KERNEL);
 		if (!rbr)
 			return NULL;
-		strcpy(rbr_name, "");
-		strncat(rbr_name, br->dev->name, IFNAMSIZ-4);
-		strcat(rbr_name, "_rbr");
 		spin_lock_bh(&br->lock);
-		strncpy(rbr->name, rbr_name, IFNAMSIZ);
-		strncpy(rbr->rbr_bridgename, br->dev->name, IFNAMSIZ);
+		strlcpy(rbr->name, br->dev->name, IFNAMSIZ - sizeof(rbr_str));
+		strcat(rbr->name, rbr_str);
+		strcpy(rbr->rbr_bridgename, br->dev->name);
 		rbr->br = br;
 		rbr->nick = RBRIDGE_NICKNAME_NONE;
 		rbr->treeroot = RBRIDGE_NICKNAME_NONE;
