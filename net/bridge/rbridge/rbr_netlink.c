@@ -351,7 +351,7 @@ static struct genl_ops trill_genl_ops[] = {
 
 void __exit rbridge_unregister_genl(void)
 {
-	int i;
+	unsigned int i;
 
 	for (i = 0; i < ARRAY_SIZE(trill_genl_ops); i++)
 		genl_unregister_ops(&trill_genl_family, &trill_genl_ops[i]);
@@ -362,7 +362,7 @@ void __exit rbridge_unregister_genl(void)
 int __init rbridge_register_genl(void)
 {
 	int err;
-	int i;
+	unsigned int i;
 
 	err = genl_register_family (&trill_genl_family);
 	if (err)
