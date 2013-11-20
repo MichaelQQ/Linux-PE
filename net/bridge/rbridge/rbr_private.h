@@ -39,7 +39,7 @@ struct rbr_nickinfo {
 	/* Nickname of the RBridge */
 	uint16_t	nick;
 	/* Next-hop SNPA address to reach this RBridge */
-	u8	adjsnpa[ETH_ALEN];
+	u8		adjsnpa[ETH_ALEN];
 	/* Link on our system to use to reach next-hop */
 	uint32_t	linkid;
 	/* Num of *our* adjacencies on a tree rooted at this RBridge */

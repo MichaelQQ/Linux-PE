@@ -60,8 +60,7 @@ static void br_trill_start(struct net_bridge *br)
 		spin_lock_bh(&br->lock);
 		br->trill_enabled = BR_TRILL;
 		spin_unlock_bh(&br->lock);
-	}
-	else {
+	} else {
 		printk(KERN_WARNING "RBridge allocation for bridge '%s' failed\n", br->dev->name);
 	}
 }
@@ -103,9 +102,8 @@ struct rbr_node *rbr_find_node(struct rbr *rbr, __u16 nickname)
 {
 	struct rbr_node *rbr_node;
 
-	if (!VALID_NICK(nickname)) {
+	if (!VALID_NICK(nickname))
 		return NULL;
-	}
 	rbr_node = rcu_dereference(rbr->rbr_nodes[nickname]);
 	rbr_node_get(rbr_node);
 	return rbr_node;
@@ -254,8 +252,7 @@ static int rbr_multidest_fwd(struct net_bridge_port *p,
 
 	if (nicksaved) {
 		rbr_fwd(p, skb, adjnicksaved, vid);
-	}
-	else{
+	} else {
 	  if (skb)
 		kfree_skb(skb);
 	}
@@ -312,8 +309,7 @@ static void rbr_encaps_prepare(struct sk_buff *skb, uint16_t egressnick, u16 vid
 	if (!p || p->state == BR_STATE_DISABLED) {
 		pr_warn_ratelimited("rbr_encaps_prepare: port error\n");
 		goto encaps_drop;
-	}
-	else {
+	} else {
 		rbr = p->br->rbr;
 	}
 	/* test if SKB still exist if not no need to do anything */
@@ -352,8 +348,7 @@ static void rbr_encaps_prepare(struct sk_buff *skb, uint16_t egressnick, u16 vid
 		if (rbr_encaps(skb, local_nick, dtrNick, 1))
 			goto encaps_drop;
 		rbr_multidest_fwd(p, skb, dtrNick, local_nick, NULL, vid, true);
-	}
-	else {
+	} else {
 		if (rbr_encaps(skb, local_nick, egressnick, 0))
 			goto encaps_drop;
 		rbr_fwd(p, skb, egressnick, vid);
@@ -427,8 +422,7 @@ static void rbr_recv(struct sk_buff *skb, u16 vid) {
 	if (!p || p->state == BR_STATE_DISABLED) {
 		pr_warn_ratelimited("rbr_recv: port error\n");
 		goto recv_drop;
-	}
-	else {
+	} else {
 		rbr = p->br->rbr;
 	}
 	memcpy(srcaddr, eth_hdr(skb)->h_source, ETH_ALEN);
@@ -647,8 +641,7 @@ rx_handler_result_t rbr_handle_frame(struct sk_buff **pskb)
 			if (eth_hdr(skb)->h_proto == __constant_htons(ETH_P_TRILL)) {
 				rbr_recv(skb, vid);
 				return RX_HANDLER_CONSUMED;
-			}
-			else {
+			} else {
 				/* packet is destinated to host port */
 				if (is_local_host_port(p, eth_hdr(skb)->h_dest, vid)) {
 					skb->pkt_type = PACKET_HOST;
@@ -660,8 +653,7 @@ rx_handler_result_t rbr_handle_frame(struct sk_buff **pskb)
 					br_fdb_update(br, p, eth_hdr(skb)->h_source, vid);
 					rbr_handle_ether_frame_finish(skb);
 					return RX_HANDLER_CONSUMED;
-				}
-				else {
+				} else {
 					/* packet is not from trill type drop it */
 					goto drop;
 				}
