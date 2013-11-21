@@ -361,7 +361,7 @@ encaps_drop:
 	return;
 }
 
-static int rbr_decap_finish(struct sk_buff *skb, u16 vid)
+static void rbr_decap_finish(struct sk_buff *skb, u16 vid)
 {
 	struct net_bridge *br;
 	const unsigned char *dest = eth_hdr(skb)->h_dest;
@@ -374,7 +374,6 @@ static int rbr_decap_finish(struct sk_buff *skb, u16 vid)
 		br_deliver(dst->dst, skb);
 	else
 		br_flood_deliver_vif(br, skb);
-	return 0;
 }
 
 static void rbr_decaps(struct net_bridge_port *p,
