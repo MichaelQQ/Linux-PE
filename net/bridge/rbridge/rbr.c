@@ -120,7 +120,7 @@ void br_trill_set_enabled(struct net_bridge *br, unsigned long val)
 	}
 }
 
-static int rbr_fwd_finish(struct sk_buff *skb, u16 vid)
+static void rbr_fwd_finish(struct sk_buff *skb, u16 vid)
 {
 	struct net_bridge *br;
 	struct net_bridge_fdb_entry *dst;
@@ -139,7 +139,6 @@ static int rbr_fwd_finish(struct sk_buff *skb, u16 vid)
 	} else {
 		br_flood_forward_nic(br, skb, NULL);
 	}
-	return 0;
 }
 
 static void rbr_fwd(struct net_bridge_port *p, struct sk_buff *skb,
