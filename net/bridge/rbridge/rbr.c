@@ -148,8 +148,6 @@ static void rbr_fwd(struct net_bridge_port *p, struct sk_buff *skb,
 	struct trill_hdr *trh;
 	struct ethhdr *outerethhdr;
 
-	if (skb == NULL)
-		return;
 	adj = rbr_find_node(p->br->rbr, adj_nick);
 	if (adj == NULL) {
 		pr_warn_ratelimited("rbr_fwd: unable to find adjacent RBridge\n");
@@ -170,8 +168,7 @@ static void rbr_fwd(struct net_bridge_port *p, struct sk_buff *skb,
 	rbr_fwd_finish(skb, vid);
 	return;
 dest_fwd_fail:
-	if (skb)
-		kfree_skb(skb);
+	kfree_skb(skb);
 	return;
 }
 
@@ -188,9 +185,6 @@ static int rbr_multidest_fwd(struct net_bridge_port *p,
 	uint16_t adjnick;
 	bool nicksaved = false;
 	unsigned int i;
-
-	if (skb == NULL)
-		return -1;
 
 	if (!p || p->state == BR_STATE_DISABLED) {
 		pr_warn_ratelimited("rbr_multidest_fwd:port error\n");
@@ -249,16 +243,13 @@ static int rbr_multidest_fwd(struct net_bridge_port *p,
 	 * be dropped
 	 */
 
-	if (nicksaved) {
+	if (nicksaved)
 		rbr_fwd(p, skb, adjnicksaved, vid);
-	} else {
-	  if (skb)
+	else
 		kfree_skb(skb);
-	}
 	return 0;
 multidest_fwd_fail:
-	if (skb)
-		kfree_skb(skb);
+	kfree_skb(skb);
 	return -1;
 }
 
@@ -311,9 +302,7 @@ static void rbr_encaps_prepare(struct sk_buff *skb, uint16_t egressnick, u16 vid
 	} else {
 		rbr = p->br->rbr;
 	}
-	/* test if SKB still exist if not no need to do anything */
-	if (skb == NULL)
-		return;
+
 	if (egressnick != RBRIDGE_NICKNAME_NONE && !VALID_NICK(egressnick)) {
 		pr_warn_ratelimited("rbr_encaps_prepare: invalid destinaton nickname\n");
 		goto encaps_drop;
@@ -355,8 +344,7 @@ static void rbr_encaps_prepare(struct sk_buff *skb, uint16_t egressnick, u16 vid
 	return;
 
 encaps_drop:
-	if (skb)
-		kfree_skb(skb);
+	kfree_skb(skb);
 	return;
 }
 
@@ -382,8 +370,6 @@ static void rbr_decaps(struct net_bridge_port *p,
 	struct trill_hdr *trh;
 	struct ethhdr *hdr;
 
-	if (skb == NULL)
-		return;
 	if (p == NULL)
 		return;
 	trh = (struct trill_hdr *)skb->data;
@@ -414,8 +400,6 @@ static void rbr_recv(struct sk_buff *skb, u16 vid) {
 	struct rbr_node *source_node = NULL;
 	struct rbr_node *adj = NULL;
 
-	if (skb == NULL)
-		return;
 	p = br_port_get_rcu(skb->dev);
 	if (!p || p->state == BR_STATE_DISABLED) {
 		pr_warn_ratelimited("rbr_recv: port error\n");
@@ -564,8 +548,7 @@ static void rbr_recv(struct sk_buff *skb, u16 vid) {
 	return;
 
 recv_drop:
-	if (skb)
-		kfree_skb(skb);
+	kfree_skb(skb);
 	return;
 }
 
@@ -659,8 +642,7 @@ rx_handler_result_t rbr_handle_frame(struct sk_buff **pskb)
 		}
 	}
 drop:
-	if (skb)
-		kfree_skb(skb);
+	kfree_skb(skb);
 	return RX_HANDLER_CONSUMED;
 handle_by_bridge:
 	/* packet is not from trill type return to standard bridge frame handle hook */
