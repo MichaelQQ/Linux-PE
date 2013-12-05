@@ -64,6 +64,7 @@ config BRIDGE_VLAN_FILTERING
 config TRILL
 	bool "Enable RBridge capabilities (RFC6325) (EXPERIMENTAL)"
 	depends on BRIDGE
+	depends on BRIDGE_VLAN_FILTERING
 	default n
 	---help---
 	  enable trill option on bridge to get Rbridge

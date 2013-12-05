@@ -258,6 +258,7 @@ static bool rbr_encaps(struct sk_buff *skb, uint16_t ingressnick,
 {
 	struct trill_hdr *trh;
 	size_t trhsize;
+	u16 vlan_tci;
 	u16 trill_flags = 0;
 
 	trhsize = sizeof(*trh);
@@ -265,6 +266,15 @@ static bool rbr_encaps(struct sk_buff *skb, uint16_t ingressnick,
 		skb_push(skb, ETH_HLEN);
 		skb_reset_inner_headers(skb);
 		skb->encapsulation = 1;
+	}
+	if (br_vlan_get_tag(skb, &vlan_tci) == 0) {
+		skb = vlan_insert_tag(skb, skb->vlan_proto, vlan_tci);
+		if (skb == NULL) {
+			printk(KERN_ERR "rbr_encaps: vlan_put_tag failed\n");
+			return 1;
+		}
+		skb->vlan_proto = 0;
+		skb->vlan_tci = 0;
 	}
 	if (skb_cow_head(skb, trhsize + ETH_HLEN)) {
 		printk(KERN_ERR "rbr_encaps: cow_head failed\n");
