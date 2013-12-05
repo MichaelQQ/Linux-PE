@@ -168,6 +168,10 @@ void br_dev_delete(struct net_device *dev, struct list_head *head)
 	struct net_bridge *br = netdev_priv(dev);
 	struct net_bridge_port *p, *n;
 
+#ifdef CONFIG_TRILL
+	br_trill_set_enabled(br, 0);
+#endif
+
 	list_for_each_entry_safe(p, n, &br->port_list, list) {
 		del_nbp(p);
 	}
