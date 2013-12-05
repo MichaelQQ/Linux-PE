@@ -465,7 +465,9 @@ netdev_features_t br_features_recompute(struct net_bridge *br,
 					netdev_features_t features);
 
 /* br_input.c */
+#ifdef CONFIG_TRILL
 int rbr_handle_ether_frame_finish(struct sk_buff *skb);
+#endif
 int br_handle_frame_finish(struct sk_buff *skb);
 rx_handler_result_t br_handle_frame(struct sk_buff **pskb);
 
@@ -839,6 +841,9 @@ static inline int br_sysfs_addbr(struct net_device *dev) { return 0; }
 static inline void br_sysfs_delbr(struct net_device *dev) { return; }
 #endif /* CONFIG_SYSFS */
 
+#ifdef CONFIG_TRILL
 /* rbridge/rbr.c */
 extern rx_handler_result_t rbr_handle_frame(struct sk_buff **pskb);
+#endif
+
 #endif
