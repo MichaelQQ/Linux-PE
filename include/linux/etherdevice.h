@@ -360,7 +360,7 @@ static inline unsigned long compare_ether_header(const void *a, const void *b)
  */
 static inline bool is_rbr_address(const u8 *addr1)
 {
-  return ether_addr_equal(addr1, eth_reserved_addr_rbridge);
+	return ether_addr_equal(addr1, eth_reserved_addr_rbridge);
 }
 /**
  * is_vif_address -heck if it is a specific vif mac address
@@ -370,7 +370,7 @@ static inline bool is_rbr_address(const u8 *addr1)
  */
 static inline bool is_vif_address(const u8 *addr1)
 {
-  return ether_addr_equal(addr1, eth_reserved_addr_vif);
+	return ether_addr_equal(addr1, eth_reserved_addr_vif);
 }
 #endif
 

@@ -22,11 +22,13 @@ static struct rbr *add_rbr(struct net_bridge *br)
 		rbr = kzalloc(sizeof(*rbr), GFP_KERNEL);
 		if (!rbr)
 			return NULL;
+
 		rbr->br = br;
 		rbr->nick = RBRIDGE_NICKNAME_NONE;
 		rbr->treeroot = RBRIDGE_NICKNAME_NONE;
 		return rbr;
 	}
+
 	return br->rbr;
 }
 
@@ -60,9 +62,9 @@ static void br_trill_start(struct net_bridge *br)
 		spin_lock_bh(&br->lock);
 		br->trill_enabled = BR_TRILL;
 		spin_unlock_bh(&br->lock);
-	} else {
-		printk(KERN_WARNING "RBridge allocation for bridge '%s' failed\n", br->dev->name);
-	}
+	} else
+		printk(KERN_WARNING "RBridge allocation for bridge '%s' failed\n",
+		       br->dev->name);
 }
 
 static void br_trill_stop(struct net_bridge *br)
@@ -93,7 +95,9 @@ int set_treeroot(struct rbr *rbr, uint16_t treeroot)
 		rbr->treeroot = treeroot;
 		spin_unlock_bh(&rbr->br->lock);
 	}
+
 	return 0;
+
 set_tree_root_fail:
 	return ENOENT;
 }
@@ -104,8 +108,10 @@ struct rbr_node *rbr_find_node(struct rbr *rbr, __u16 nickname)
 
 	if (!VALID_NICK(nickname))
 		return NULL;
+
 	rbr_node = rcu_dereference(rbr->rbr_nodes[nickname]);
 	rbr_node_get(rbr_node);
+
 	return rbr_node;
 }
 
@@ -134,15 +140,14 @@ static void rbr_fwd_finish(struct sk_buff *skb, u16 vid)
 	if (dst) {
 		dst->used = jiffies;
 		memcpy(outerethhdr->h_source, dst->dst->dev->dev_addr,
-				dst->dst->dev->addr_len);
+		       dst->dst->dev->addr_len);
 		br_forward(dst->dst, skb, NULL);
-	} else {
+	} else
 		br_flood_forward_nic(br, skb, NULL);
-	}
 }
 
 static void rbr_fwd(struct net_bridge_port *p, struct sk_buff *skb,
-		uint16_t adj_nick, u16 vid)
+		    uint16_t adj_nick, u16 vid)
 {
 	struct rbr_node *adj;
 	struct trill_hdr *trh;
@@ -153,6 +158,7 @@ static void rbr_fwd(struct net_bridge_port *p, struct sk_buff *skb,
 		pr_warn_ratelimited("rbr_fwd: unable to find adjacent RBridge\n");
 		goto dest_fwd_fail;
 	}
+
 	trh = (struct trill_hdr *) skb->data;
 	trillhdr_dec_hopcount(trh);
 	outerethhdr = eth_hdr(skb);
@@ -166,16 +172,18 @@ static void rbr_fwd(struct net_bridge_port *p, struct sk_buff *skb,
 	/* set Bridge as source device */
 	skb->dev = p->br->dev;
 	rbr_fwd_finish(skb, vid);
+
 	return;
+
 dest_fwd_fail:
 	kfree_skb(skb);
 	return;
 }
 
 static int rbr_multidest_fwd(struct net_bridge_port *p,
-			struct sk_buff *skb, uint16_t egressnick,
-			uint16_t ingressnick, const uint8_t *saddr,
-			u16 vid, bool free)
+			     struct sk_buff *skb, uint16_t egressnick,
+			     uint16_t ingressnick, const uint8_t *saddr,
+			     u16 vid, bool free)
 {
 	struct rbr *rbr;
 	struct rbr_node *dest;
@@ -190,9 +198,11 @@ static int rbr_multidest_fwd(struct net_bridge_port *p,
 		pr_warn_ratelimited("rbr_multidest_fwd:port error\n");
 		goto multidest_fwd_fail;
 	}
+
 	rbr = p->br->rbr;
 	if (rbr == NULL)
 		return -1;
+
 	/* Lookup the egress nick info, this is the DT root */
 	if ((dest = rbr_find_node(rbr, egressnick)) == NULL) {
 		pr_warn_ratelimited("rbr_multidest_fwd: unable to find egress\n");
@@ -204,7 +214,7 @@ static int rbr_multidest_fwd(struct net_bridge_port *p,
 		/* Check for a valid adjacency node */
 		adjnick = RBR_NI_ADJNICK(dest->rbr_ni, i);
 		if (!VALID_NICK(adjnick) || ingressnick == adjnick ||
-			((adj = rbr_find_node(rbr, adjnick)) == NULL))
+		    ((adj = rbr_find_node(rbr, adjnick)) == NULL))
 			continue;
 		/* Do not forward back to adjacency that sent the pkt to us */
 		if ((saddr != NULL) &&
@@ -247,14 +257,16 @@ static int rbr_multidest_fwd(struct net_bridge_port *p,
 		rbr_fwd(p, skb, adjnicksaved, vid);
 	else
 		kfree_skb(skb);
+
 	return 0;
+
 multidest_fwd_fail:
 	kfree_skb(skb);
 	return -1;
 }
 
 static bool rbr_encaps(struct sk_buff *skb, uint16_t ingressnick,
-		uint16_t egressnick, bool multidest)
+		       uint16_t egressnick, bool multidest)
 {
 	struct trill_hdr *trh;
 	size_t trhsize;
@@ -297,7 +309,9 @@ static bool rbr_encaps(struct sk_buff *skb, uint16_t ingressnick,
 	return 0;
 }
 
-static void rbr_encaps_prepare(struct sk_buff *skb, uint16_t egressnick, u16 vid) {
+static void rbr_encaps_prepare(struct sk_buff *skb, uint16_t egressnick,
+			       u16 vid)
+{
 	uint16_t local_nick;
 	uint16_t dtrNick;
 	struct rbr_node *self;
@@ -309,9 +323,8 @@ static void rbr_encaps_prepare(struct sk_buff *skb, uint16_t egressnick, u16 vid
 	if (!p || p->state == BR_STATE_DISABLED) {
 		pr_warn_ratelimited("rbr_encaps_prepare: port error\n");
 		goto encaps_drop;
-	} else {
+	} else
 		rbr = p->br->rbr;
-	}
 
 	if (egressnick != RBRIDGE_NICKNAME_NONE && !VALID_NICK(egressnick)) {
 		pr_warn_ratelimited("rbr_encaps_prepare: invalid destinaton nickname\n");
@@ -324,7 +337,7 @@ static void rbr_encaps_prepare(struct sk_buff *skb, uint16_t egressnick, u16 vid
 	}
 	if (egressnick == RBRIDGE_NICKNAME_NONE) {
 		/* Daemon has not yet sent the local nickname */
-		if ((self = rbr_find_node(rbr, local_nick))== NULL) {
+		if ((self = rbr_find_node(rbr, local_nick)) == NULL) {
 			pr_warn_ratelimited("rbr_encaps_prepare: waiting for nickname\n");
 			goto encaps_drop;
 		}
@@ -351,6 +364,7 @@ static void rbr_encaps_prepare(struct sk_buff *skb, uint16_t egressnick, u16 vid
 			goto encaps_drop;
 		rbr_fwd(p, skb, egressnick, vid);
 	}
+
 	return;
 
 encaps_drop:
@@ -374,14 +388,15 @@ static void rbr_decap_finish(struct sk_buff *skb, u16 vid)
 }
 
 static void rbr_decaps(struct net_bridge_port *p,
-			     struct sk_buff *skb,
-			     size_t trhsize, u16 vid)
+		       struct sk_buff *skb,
+		       size_t trhsize, u16 vid)
 {
 	struct trill_hdr *trh;
 	struct ethhdr *hdr;
 
 	if (p == NULL)
 		return;
+
 	trh = (struct trill_hdr *)skb->data;
 	skb_pull(skb, trhsize);
 	skb_reset_mac_header(skb);  /* instead of the inner one */
@@ -390,14 +405,15 @@ static void rbr_decaps(struct net_bridge_port *p,
 	skb_pull(skb, ETH_HLEN);
 	skb_reset_network_header(skb);
 	if (skb->encapsulation)
-	skb->encapsulation = 0;
+		skb->encapsulation = 0;
 	/* Mark bridge as source device */
 	skb->dev = p->br->dev;
 	br_fdb_update_nick(p->br, p, hdr->h_source, vid, trh->th_ingressnick);
 	rbr_decap_finish(skb, vid);
 }
 
-static void rbr_recv(struct sk_buff *skb, u16 vid) {
+static void rbr_recv(struct sk_buff *skb, u16 vid)
+{
 	uint16_t local_nick, dtrNick, adjnick, idx;
 	struct rbr *rbr;
 	uint8_t srcaddr[ETH_ALEN];
@@ -414,9 +430,9 @@ static void rbr_recv(struct sk_buff *skb, u16 vid) {
 	if (!p || p->state == BR_STATE_DISABLED) {
 		pr_warn_ratelimited("rbr_recv: port error\n");
 		goto recv_drop;
-	} else {
+	} else
 		rbr = p->br->rbr;
-	}
+
 	memcpy(srcaddr, eth_hdr(skb)->h_source, ETH_ALEN);
 	trh = (struct trill_hdr *)skb->data;
 	trill_flags = ntohs(trh->th_flags);
@@ -431,7 +447,8 @@ static void rbr_recv(struct sk_buff *skb, u16 vid) {
 		skb->encapsulation = 1;
 		skb_push(skb, trhsize + ETH_HLEN);
 	}
-	if (!VALID_NICK(trh->th_ingressnick) || (!VALID_NICK(trh->th_egressnick))) {
+	if (!VALID_NICK(trh->th_ingressnick) ||
+	    !VALID_NICK(trh->th_egressnick)) {
 		pr_warn_ratelimited("rbr_recv: invalid nickname\n");
 		goto recv_drop;
 	}
@@ -457,9 +474,8 @@ static void rbr_recv(struct sk_buff *skb, u16 vid) {
 			pr_warn_ratelimited("rbr_recv: egressnick == ingressnick\n");
 			goto recv_drop;
 		}
-		if (trh->th_egressnick == local_nick) {
+		if (trh->th_egressnick == local_nick)
 			rbr_decaps(p, skb, trhsize, vid);
-		}
 		else if (trill_get_hopcount(trill_flags)) {
 			br_fdb_update(p->br, p, srcaddr, vid);
 			rbr_fwd(p, skb, trh->th_egressnick, vid);
@@ -475,7 +491,6 @@ static void rbr_recv(struct sk_buff *skb, u16 vid) {
 	 * adjacency in the distribution tree rooted at egress nick
 	 * indicated in the frame header
 	 */
-
 	dest = rbr_find_node(rbr, trh->th_egressnick);
 	if (dest == NULL) {
 		pr_warn_ratelimited("rbr_recv: mulicast  with unknown destination\n");
@@ -530,7 +545,6 @@ static void rbr_recv(struct sk_buff *skb, u16 vid) {
 	}
 
 	/* Check hop count before doing any forwarding */
-
 	if (trill_get_hopcount(trill_flags) == 0) {
 		pr_warn_ratelimited("rbr_recv:multicast hop ount limit reached\n");
 		rbr_node_put(dest);
@@ -548,13 +562,14 @@ static void rbr_recv(struct sk_buff *skb, u16 vid) {
 	}
 
 	if (rbr_multidest_fwd(p, skb2, trh->th_egressnick, trh->th_ingressnick,
-				srcaddr, vid, false))
+			      srcaddr, vid, false))
 		goto recv_drop;
 
 	/*
 	 * Send de-capsulated frame locally
 	 */
 	rbr_decaps(p, skb, trhsize, vid);
+
 	return;
 
 recv_drop:
@@ -581,6 +596,7 @@ rx_handler_result_t rbr_handle_frame(struct sk_buff **pskb)
 	br = p->br;
 	if (!p || p->state == BR_STATE_DISABLED)
 		goto drop;
+
 	/* if trill is not enabled handle by bridge */
 	if (br->trill_enabled == BR_NO_TRILL) {
 		goto handle_by_bridge;
@@ -651,6 +667,7 @@ rx_handler_result_t rbr_handle_frame(struct sk_buff **pskb)
 			}
 		}
 	}
+
 drop:
 	kfree_skb(skb);
 	return RX_HANDLER_CONSUMED;

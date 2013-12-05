@@ -76,6 +76,7 @@ static inline void trillhdr_dec_hopcount(struct trill_hdr *trh)
 	if (flags[1] & 0x3F)
 		flags[1] -= 1;
 }
+
 static inline size_t trill_header_len(struct trill_hdr *trh)
 {
 	return (sizeof(*trh) + trill_get_optslen(ntohs(trh->th_flags)));

@@ -34,14 +34,15 @@
 #define BR_VLAN_BITMAP_LEN	BITS_TO_LONGS(VLAN_N_VID)
 
 #define BR_VERSION	"2.3"
+
 #ifdef CONFIG_TRILL
-	/* TRILL flagged ports are ports where we expect receiving native layer 2 frames
-	* frames from TRILL flagged ports must be encapsulated
-	* frames must be decapsulated before forwarding them to any trill flagged port
-	*/
-	#define TRILL_FLAG_DISABLE 0x1
-	#define TRILL_FLAG_AUTO_ENABLE 0x10 /* VM port */
-	#define TRILL_FLAG_MANUEL_ENABLE 0x100 /* port enabled manually */
+/* TRILL flagged ports are ports where we expect receiving native layer 2 frames
+ * frames from TRILL flagged ports must be encapsulated
+ * frames must be decapsulated before forwarding them to any trill flagged port
+ */
+#define TRILL_FLAG_DISABLE 0x1
+#define TRILL_FLAG_AUTO_ENABLE 0x10 /* VM port */
+#define TRILL_FLAG_MANUEL_ENABLE 0x100 /* port enabled manually */
 #endif
 
 /* Control of forwarding link local multicast */

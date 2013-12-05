@@ -111,7 +111,7 @@ int rbr_handle_ether_frame_finish(struct sk_buff *skb)
 
 		br->dev->stats.multicast++;
 	} else if ((dst = __br_fdb_get(br, dest, vid)) &&
-			dst->is_local) {
+		   dst->is_local) {
 		skb2 = skb;
 		/* Do not forward the packet since it's local. */
 		skb = NULL;
@@ -135,6 +135,7 @@ drop:
 	goto out;
 }
 #endif
+
 /* note: already called with rcu_read_lock */
 int br_handle_frame_finish(struct sk_buff *skb)
 {

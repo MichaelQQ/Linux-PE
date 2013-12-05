@@ -33,7 +33,7 @@
 #define	TRILL_PROTOCOL_VERS 0	/* th_version */
 #define	TRILL_DEFAULT_HOPS 21	/* th_hopcount */
 #define VALID_NICK(n)	((n) != RBRIDGE_NICKNAME_NONE && \
-			(n) != RBRIDGE_NICKNAME_UNUSED)
+			 (n) != RBRIDGE_NICKNAME_UNUSED)
 
 struct rbr_nickinfo {
 	/* Nickname of the RBridge */
@@ -71,14 +71,14 @@ static inline void rbr_node_free(struct rbr_node *rbr_node)
 {
 	if (rbr_node != NULL) {
 		if (rbr_node->rbr_ni != NULL)
-		kfree(rbr_node->rbr_ni);
+			kfree(rbr_node->rbr_ni);
 		kfree(rbr_node);
 	}
 }
 
 static inline void rbr_node_get(struct rbr_node *rbr_node)
 {
-	if (rbr_node!=NULL)
+	if (rbr_node != NULL)
 		atomic_inc(&rbr_node->refs);
 }
 

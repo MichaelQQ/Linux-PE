@@ -152,17 +152,16 @@ static DEVICE_ATTR(stp_state, S_IRUGO | S_IWUSR, show_stp_state,
 
 #ifdef CONFIG_TRILL
 static ssize_t show_trill_state(struct device *d,
-			struct device_attribute *attr, char *buf)
+				struct device_attribute *attr, char *buf)
 {
 	struct net_bridge *br = to_bridge(d);
 
 	return sprintf(buf, "%d\n", br->trill_enabled);
 }
 
-
 static ssize_t store_trill_state(struct device *d,
-				struct device_attribute *attr, const char *buf,
-			       size_t len)
+				 struct device_attribute *attr, const char *buf,
+				 size_t len)
 {
 	struct net_bridge *br = to_bridge(d);
 	char *endp;
@@ -182,6 +181,7 @@ static ssize_t store_trill_state(struct device *d,
 
 	return len;
 }
+
 static DEVICE_ATTR(trill_state, S_IRUGO | S_IWUSR, show_trill_state,
 		   store_trill_state);
 #endif

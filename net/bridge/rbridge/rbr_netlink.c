@@ -48,9 +48,9 @@ int create_node(struct net_bridge_port *p, struct rbr *rbr,
 	struct rbr_node* old;
 	struct rbr_nickinfo *rbr_ni;
 
-	if (rbr_ni_partial == NULL) {
+	if (rbr_ni_partial == NULL)
 		return -EFAULT;
-	}
+
 	size = RBR_NI_TOTALSIZE(rbr_ni_partial);
 	if (size > PAGE_SIZE-sizeof(struct trill_nl_header)) {
 		pr_warn_ratelimited("create_node: size > (PAGE_SIZE-nickinfo_offset)\n");
@@ -64,9 +64,10 @@ int create_node(struct net_bridge_port *p, struct rbr *rbr,
 	if (old)
 		old_size = RBR_NI_TOTALSIZE(old->rbr_ni);
 	/* replace old node by a new one only if nickname information have changed */
-	if ((old == NULL) || (old_size != size) ||
-			(memcmp(old->rbr_ni, rbr_ni, size))) {
+	if (old == NULL || old_size != size ||
+	    memcmp(old->rbr_ni, rbr_ni, size)) {
 		struct rbr_node *new;
+
 		new = kzalloc(sizeof(*old), GFP_KERNEL);
 		if (!new) {
 			kfree(rbr_ni);
@@ -78,9 +79,9 @@ int create_node(struct net_bridge_port *p, struct rbr *rbr,
 		rcu_assign_pointer(rbr->rbr_nodes[rbr_ni->nick], new);
 		if (old)
 			rbr_node_put(old);
-	} else {
+	} else
 		kfree(rbr_ni);
-	}
+
 	return 0;
 }
 
@@ -97,6 +98,7 @@ static int trill_cmd_set_nicks_info(struct sk_buff *skb, struct genl_info *info)
 	nla_memcpy(&rbr_ni, info->attrs[TRILL_ATTR_BIN], sizeof(rbr_ni));
 	if (!VALID_NICK(rbr_ni.nick))
 		return -EFAULT;
+
 	trnlhdr = info->userhdr;
 	if (trnlhdr->ifindex)
 		source_port = __dev_get_by_index(net, trnlhdr->ifindex);
@@ -106,7 +108,8 @@ static int trill_cmd_set_nicks_info(struct sk_buff *skb, struct genl_info *info)
 			br = p->br;
 			if (br) {
 				if (br->rbr) {
-					if (create_node(p, br->rbr, &rbr_ni, info))
+					if (create_node(p, br->rbr, &rbr_ni,
+							info))
 						return -EFAULT;
 					return 0;
 				}
@@ -114,6 +117,7 @@ static int trill_cmd_set_nicks_info(struct sk_buff *skb, struct genl_info *info)
 		}
 	}
 	printk(KERN_WARNING "trill_cmd_set_nicks_info FAILED\n");
+
 	return -EFAULT;
 }
 
@@ -141,17 +145,18 @@ static int trill_cmd_get_nicks_info(struct sk_buff *skb, struct genl_info *info)
 			if (br) {
 				if (br->rbr) {
 					struct rbr_node *rbr_node;
+
 					rbr_node = rbr_find_node(br->rbr, rbr_ni.nick);
 					msg = nlmsg_new(NLMSG_DEFAULT_SIZE, GFP_KERNEL);
 					trnlhdr = genlmsg_put(msg,
-							info->snd_portid,
-							trill_genlseqnb,
-							&trill_genl_family,
-							sizeof(*trnlhdr),
-							TRILL_CMD_GET_NICKS_INFO);
+							      info->snd_portid,
+							      trill_genlseqnb,
+							      &trill_genl_family,
+							      sizeof(*trnlhdr),
+							      TRILL_CMD_GET_NICKS_INFO);
 					attr = nla_reserve(msg,
-							TRILL_ATTR_BIN,
-							RBR_NI_TOTALSIZE(rbr_node->rbr_ni));
+							   TRILL_ATTR_BIN,
+							   RBR_NI_TOTALSIZE(rbr_node->rbr_ni));
 					data = nla_data(attr);
 					trnlhdr->ifindex = KERNL_RESPONSE_INTERFACE;
 					memcpy(data, rbr_node->rbr_ni, RBR_NI_TOTALSIZE(rbr_node->rbr_ni));
@@ -163,6 +168,7 @@ static int trill_cmd_get_nicks_info(struct sk_buff *skb, struct genl_info *info)
 		}
 	}
 	printk(KERN_WARNING "trill_cmd_get_nicks_info FAILED\n");
+
 	return -EFAULT;
 }
 
@@ -172,7 +178,8 @@ static int trill_cmd_add_nicks_info(struct sk_buff *skb, struct genl_info *info)
 	return 0;
 }
 
-static int trill_cmd_set_treeroot_id(struct sk_buff *skb, struct genl_info *info)
+static int trill_cmd_set_treeroot_id(struct sk_buff *skb,
+				     struct genl_info *info)
 {
 	int error;
 	u16 nickname;
@@ -193,7 +200,8 @@ static int trill_cmd_set_treeroot_id(struct sk_buff *skb, struct genl_info *info
 			br = p->br;
 			if (br) {
 				if (br->rbr) {
-					error = set_treeroot(br->rbr, htons(nickname));
+					error = set_treeroot(br->rbr,
+							     htons(nickname));
 					if (error)
 						return -EFAULT;
 					else
@@ -203,6 +211,7 @@ static int trill_cmd_set_treeroot_id(struct sk_buff *skb, struct genl_info *info
 		}
 	}
 	printk(KERN_WARNING "trill_cmd_set_treeroot_id FAILED\n");
+
 	return -EFAULT;
 }
 
@@ -237,12 +246,13 @@ static int trill_cmd_get_rbridge(struct sk_buff *skb, struct genl_info *info)
 	}
 	msg = nlmsg_new(NLMSG_DEFAULT_SIZE, GFP_KERNEL);
 	trnlhdr = genlmsg_put(msg, info->snd_portid, trill_genlseqnb,
-			&trill_genl_family,
-			sizeof(*trnlhdr),
-			TRILL_CMD_GET_RBRIDGE);
+			      &trill_genl_family,
+			      sizeof(*trnlhdr),
+			      TRILL_CMD_GET_RBRIDGE);
 	trnlhdr->ifindex = KERNL_RESPONSE_INTERFACE;
 	nla_put_u16(msg, TRILL_ATTR_U16, nickname);
 	genlmsg_end(msg, trnlhdr);
+
 	return genlmsg_reply(msg, info);
 }
 
@@ -269,8 +279,8 @@ static int trill_cmd_set_rbridge(struct sk_buff *skb, struct genl_info *info)
 			br = p->br;
 			if (br) {
 				/* if daemon has started and bridge TRILL capability
-				* is not enabled then start it
-				*/
+				 * is not enabled then start it
+				 */
 				if (br->trill_enabled == BR_NO_TRILL)
 					br_trill_set_enabled(br, 1);
 				if (br->rbr) {
@@ -283,6 +293,7 @@ static int trill_cmd_set_rbridge(struct sk_buff *skb, struct genl_info *info)
 		}
 	}
 	printk(KERN_WARNING "trill_cmd_set_bridge FAILED\n");
+
 	return -EFAULT;
 }
 

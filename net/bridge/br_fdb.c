@@ -853,7 +853,7 @@ out:
  * must be called while decapsulating to learn nick <-> mac correspondance
  */
 void br_fdb_update_nick(struct net_bridge *br, struct net_bridge_port *source,
-				const unsigned char *addr, u16 vid, u16 nick)
+			const unsigned char *addr, u16 vid, u16 nick)
 {
 	struct hlist_head *head = &br->hash[br_mac_hash(addr, vid)];
 	struct net_bridge_fdb_entry *fdb;
@@ -861,18 +861,19 @@ void br_fdb_update_nick(struct net_bridge *br, struct net_bridge_port *source,
 	/* some users want to always flood. */
 	if (hold_time(br) == 0)
 		return;
+
 	/* ignore packets unless we are using this port */
 	if (!(source->state == BR_STATE_LEARNING ||
-		source->state == BR_STATE_FORWARDING))
+	      source->state == BR_STATE_FORWARDING))
 		return;
+
 	fdb = fdb_find_rcu(head, addr, vid);
 	if (likely(fdb)) {
 		/* attempt to update an entry for a local interface */
 		if (unlikely(fdb->is_local)) {
 			if (net_ratelimit())
-				printk(KERN_WARNING "%s: received packet with "
-					"own address as source address\n",
-					source->dev->name);
+				printk(KERN_WARNING "%s: received packet with own address as source address\n",
+				       source->dev->name);
 		} else {
 			/* fastpath: update of existing entry */
 			fdb->dst = source;
@@ -899,16 +900,19 @@ void br_fdb_update_nick(struct net_bridge *br, struct net_bridge_port *source,
  * and decapsulate frames)
  * must be called while encapsulating  to get mac <-> nick correspondance
  */
-uint16_t get_nick_from_mac(struct net_bridge_port *p, unsigned char *dest, u16 vid)
+uint16_t get_nick_from_mac(struct net_bridge_port *p, unsigned char *dest,
+			   u16 vid)
 {
 	struct hlist_head *head = &p->br->hash[br_mac_hash(dest, vid)];
 	struct net_bridge_fdb_entry *fdb;
 
 	if (is_multicast_ether_addr(dest))
 		return RBRIDGE_NICKNAME_NONE;
+
 	fdb = fdb_find(head, dest, vid);
 	if (likely(fdb))
 		return fdb->nick;
+
 	return RBRIDGE_NICKNAME_NONE;
 }
 
@@ -923,8 +927,10 @@ int is_local_guest_port(struct net_bridge_port *p, unsigned char *dest, u16 vid)
 	fdb = fdb_find(head, dest, vid);
 	if (likely(fdb))
 		return fdb->dst->trill_flag;
+
 	 return 0;
 }
+
 /* is_local_host_port: check if given mac address is a local non trill flagged port
  * used to filter traffic destined to the Host
  */
@@ -936,6 +942,7 @@ int is_local_host_port(struct net_bridge_port *p, unsigned char *dest, u16 vid)
 	fdb = fdb_find(head, dest, vid);
 	if (likely(fdb))
 		return fdb->is_local;
+
 	return 0;
 }
 #endif
