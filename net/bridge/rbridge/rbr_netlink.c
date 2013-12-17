@@ -36,8 +36,8 @@ static struct genl_family trill_genl_family = {
 	.maxattr = TRILL_ATTR_MAX
 };
 
-static struct genl_multicast_group trill_mcgrp = {
-	.name = TRILL_MCAST_NAME,
+static const struct genl_multicast_group trill_mcgrps[] = {
+	{ .name = TRILL_MCAST_NAME, },
 };
 
 int create_node(struct net_bridge_port *p, struct rbr *rbr,
@@ -361,36 +361,20 @@ static struct genl_ops trill_genl_ops[] = {
 
 void __exit rbridge_unregister_genl(void)
 {
-	unsigned int i;
-
-	for (i = 0; i < ARRAY_SIZE(trill_genl_ops); i++)
-		genl_unregister_ops(&trill_genl_family, &trill_genl_ops[i]);
-	genl_unregister_mc_group(&trill_genl_family, &trill_mcgrp);
 	genl_unregister_family(&trill_genl_family);
 }
 
 int __init rbridge_register_genl(void)
 {
 	int err;
-	unsigned int i;
 
-	err = genl_register_family (&trill_genl_family);
+	err = genl_register_family_with_ops_groups(&trill_genl_family, trill_genl_ops, trill_mcgrps);
 	if (err)
-		return err;
-	err = genl_register_mc_group(&trill_genl_family, &trill_mcgrp);
-	if (err)
-		goto fail1;
-	for (i = 0; i < ARRAY_SIZE(trill_genl_ops); i++)
-		err = genl_register_ops(&trill_genl_family, &trill_genl_ops[i]);
-	if (err)
-		goto fail2;
-	else
-		goto done;
+		goto fail_genl_register_family;
 
-fail2:
-	genl_unregister_mc_group(&trill_genl_family, &trill_mcgrp);
-fail1:
-	genl_unregister_family(&trill_genl_family);
-done:
+	return 0;
+
+fail_genl_register_family:
+
 	return err;
 }
