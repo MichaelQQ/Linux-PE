@@ -482,5 +482,4 @@ void __net_exit br_net_exit(struct net *net)
 
 	unregister_netdevice_many(&list);
 	rtnl_unlock();
-
 }

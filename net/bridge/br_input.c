@@ -94,9 +94,9 @@ int rbr_handle_ether_frame_finish(struct sk_buff *skb)
 
 	dst = NULL;
 
-	if (is_broadcast_ether_addr(dest))
+	if (is_broadcast_ether_addr(dest)) {
 		skb2 = skb;
-	else if (is_multicast_ether_addr(dest)) {
+	} else if (is_multicast_ether_addr(dest)) {
 		mdst = br_mdb_get(br, skb, vid);
 		if (mdst || BR_INPUT_SKB_CB_MROUTERS_ONLY(skb)) {
 			if ((mdst && mdst->mglist) ||
@@ -106,8 +106,9 @@ int rbr_handle_ether_frame_finish(struct sk_buff *skb)
 			skb = NULL;
 			if (!skb2)
 				goto out;
-		} else
+		} else {
 			skb2 = skb;
+		}
 
 		br->dev->stats.multicast++;
 	} else if ((dst = __br_fdb_get(br, dest, vid)) &&
@@ -121,8 +122,9 @@ int rbr_handle_ether_frame_finish(struct sk_buff *skb)
 		if (dst) {
 			dst->used = jiffies;
 			br_forward(dst->dst, skb, skb2);
-		} else
+		} else {
 			br_flood_forward_nic(br, skb, skb2);
+		}
 	}
 
 	if (skb2)
