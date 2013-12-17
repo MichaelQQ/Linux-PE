@@ -323,8 +323,8 @@ static void rbr_encaps_prepare(struct sk_buff *skb, uint16_t egressnick,
 	if (!p || p->state == BR_STATE_DISABLED) {
 		pr_warn_ratelimited("rbr_encaps_prepare: port error\n");
 		goto encaps_drop;
-	} else
-		rbr = p->br->rbr;
+	}
+	rbr = p->br->rbr;
 
 	if (egressnick != RBRIDGE_NICKNAME_NONE && !VALID_NICK(egressnick)) {
 		pr_warn_ratelimited("rbr_encaps_prepare: invalid destinaton nickname\n");
@@ -593,9 +593,9 @@ rx_handler_result_t rbr_handle_frame(struct sk_buff **pskb)
 	u16 vid = 0;
 
 	p = br_port_get_rcu(skb->dev);
-	br = p->br;
 	if (!p || p->state == BR_STATE_DISABLED)
 		goto drop;
+	br = p->br;
 
 	/* if trill is not enabled handle by bridge */
 	if (br->trill_enabled == BR_NO_TRILL) {
