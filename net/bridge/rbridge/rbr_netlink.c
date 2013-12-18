@@ -79,8 +79,9 @@ int create_node(struct net_bridge_port *p, struct rbr *rbr,
 		rcu_assign_pointer(rbr->rbr_nodes[rbr_ni->nick], new);
 		if (old)
 			rbr_node_put(old);
-	} else
+	} else {
 		kfree(rbr_ni);
+	}
 
 	return 0;
 }

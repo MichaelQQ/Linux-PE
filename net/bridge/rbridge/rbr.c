@@ -62,9 +62,10 @@ static void br_trill_start(struct net_bridge *br)
 		spin_lock_bh(&br->lock);
 		br->trill_enabled = BR_TRILL;
 		spin_unlock_bh(&br->lock);
-	} else
+	} else {
 		printk(KERN_WARNING "RBridge allocation for bridge '%s' failed\n",
 		       br->dev->name);
+	}
 }
 
 static void br_trill_stop(struct net_bridge *br)
@@ -142,8 +143,9 @@ static void rbr_fwd_finish(struct sk_buff *skb, u16 vid)
 		memcpy(outerethhdr->h_source, dst->dst->dev->dev_addr,
 		       dst->dst->dev->addr_len);
 		br_forward(dst->dst, skb, NULL);
-	} else
+	} else {
 		br_flood_forward_nic(br, skb, NULL);
+	}
 }
 
 static void rbr_fwd(struct net_bridge_port *p, struct sk_buff *skb,
@@ -430,8 +432,9 @@ static void rbr_recv(struct sk_buff *skb, u16 vid)
 	if (!p || p->state == BR_STATE_DISABLED) {
 		pr_warn_ratelimited("rbr_recv: port error\n");
 		goto recv_drop;
-	} else
+	} else {
 		rbr = p->br->rbr;
+	}
 
 	memcpy(srcaddr, eth_hdr(skb)->h_source, ETH_ALEN);
 	trh = (struct trill_hdr *)skb->data;
@@ -474,9 +477,9 @@ static void rbr_recv(struct sk_buff *skb, u16 vid)
 			pr_warn_ratelimited("rbr_recv: egressnick == ingressnick\n");
 			goto recv_drop;
 		}
-		if (trh->th_egressnick == local_nick)
+		if (trh->th_egressnick == local_nick) {
 			rbr_decaps(p, skb, trhsize, vid);
-		else if (trill_get_hopcount(trill_flags)) {
+		} else if (trill_get_hopcount(trill_flags)) {
 			br_fdb_update(p->br, p, srcaddr, vid);
 			rbr_fwd(p, skb, trh->th_egressnick, vid);
 		} else {
@@ -654,9 +657,8 @@ rx_handler_result_t rbr_handle_frame(struct sk_buff **pskb)
 					skb->pkt_type = PACKET_HOST;
 					br_handle_frame_finish(skb);
 					return RX_HANDLER_CONSUMED;
-				}
 				/* handle arp */
-				else if (is_broadcast_ether_addr(eth_hdr(skb)->h_dest)) {
+				} else if (is_broadcast_ether_addr(eth_hdr(skb)->h_dest)) {
 					br_fdb_update(br, p, eth_hdr(skb)->h_source, vid);
 					rbr_handle_ether_frame_finish(skb);
 					return RX_HANDLER_CONSUMED;

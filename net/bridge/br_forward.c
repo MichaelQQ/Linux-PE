@@ -312,10 +312,8 @@ static void br_flood_vif(struct net_bridge *br, struct sk_buff *skb,
 		}
 	}
 
-	if (prev != NULL) {
+	if (prev != NULL)
 		__packet_hook(prev, skb);
-		return;
-	}
 }
 
 /* called with rcu_read_lock */
