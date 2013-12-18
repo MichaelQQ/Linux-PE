@@ -852,6 +852,15 @@ static inline void br_sysfs_delbr(struct net_device *dev) { return; }
 #ifdef CONFIG_TRILL
 /* rbridge/rbr.c */
 extern rx_handler_result_t rbr_handle_frame(struct sk_buff **pskb);
+
+#ifdef CONFIG_TRILL_VNT
+/* rbridge/rbr_vni.c */
+extern uint32_t get_port_vni_id(struct net_bridge_port *p);
+extern bool vni_add_port(struct net_bridge_port *, uint32_t );
+extern void vni_del_port(struct net_bridge_port *);
+extern void del_vni(struct vni *);
+extern struct vni *find_vni(struct net_bridge *, uint32_t);
+#endif /* CONFIG_TRILL_VNT */
 #endif
 
 #endif

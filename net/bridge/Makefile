@@ -18,4 +18,6 @@ bridge-$(CONFIG_BRIDGE_VLAN_FILTERING) += br_vlan.o
 
 bridge-$(CONFIG_TRILL) += rbridge/rbr.o rbridge/rbr_netlink.o
 
+bridge-$(CONFIG_TRILL_VNT) += rbridge/rbr_vni.o
+
 obj-$(CONFIG_BRIDGE_NF_EBTABLES) += netfilter/
