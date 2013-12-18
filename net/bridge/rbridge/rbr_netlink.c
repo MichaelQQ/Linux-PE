@@ -106,13 +106,10 @@ static int trill_cmd_set_nicks_info(struct sk_buff *skb, struct genl_info *info)
 		p = br_port_get_rcu(source_port);
 		if (p) {
 			br = p->br;
-			if (br) {
-				if (br->rbr) {
-					if (create_node(p, br->rbr, &rbr_ni,
-							info))
-						return -EFAULT;
-					return 0;
-				}
+			if (br && br->rbr) {
+				if (create_node(p, br->rbr, &rbr_ni, info))
+					return -EFAULT;
+				return 0;
 			}
 		}
 	}
@@ -142,28 +139,25 @@ static int trill_cmd_get_nicks_info(struct sk_buff *skb, struct genl_info *info)
 		p = br_port_get_rcu(source_port);
 		if (p) {
 			br = p->br;
-			if (br) {
-				if (br->rbr) {
-					struct rbr_node *rbr_node;
+			if (br && br->rbr) {
+				struct rbr_node *rbr_node;
 
-					rbr_node = rbr_find_node(br->rbr, rbr_ni.nick);
-					msg = nlmsg_new(NLMSG_DEFAULT_SIZE, GFP_KERNEL);
-					trnlhdr = genlmsg_put(msg,
-							      info->snd_portid,
-							      trill_genlseqnb,
-							      &trill_genl_family,
-							      sizeof(*trnlhdr),
-							      TRILL_CMD_GET_NICKS_INFO);
-					attr = nla_reserve(msg,
-							   TRILL_ATTR_BIN,
-							   RBR_NI_TOTALSIZE(rbr_node->rbr_ni));
-					data = nla_data(attr);
-					trnlhdr->ifindex = KERNL_RESPONSE_INTERFACE;
-					memcpy(data, rbr_node->rbr_ni, RBR_NI_TOTALSIZE(rbr_node->rbr_ni));
-					genlmsg_end(msg, trnlhdr);
-					rbr_node_put(rbr_node);
-					return  genlmsg_reply(msg, info);
-				}
+				rbr_node = rbr_find_node(br->rbr, rbr_ni.nick);
+				msg = nlmsg_new(NLMSG_DEFAULT_SIZE, GFP_KERNEL);
+				trnlhdr = genlmsg_put(msg,
+						      info->snd_portid,
+						      trill_genlseqnb,
+						      &trill_genl_family,
+						      sizeof(*trnlhdr),
+						      TRILL_CMD_GET_NICKS_INFO);
+				attr = nla_reserve(msg, TRILL_ATTR_BIN,
+						   RBR_NI_TOTALSIZE(rbr_node->rbr_ni));
+				data = nla_data(attr);
+				trnlhdr->ifindex = KERNL_RESPONSE_INTERFACE;
+				memcpy(data, rbr_node->rbr_ni, RBR_NI_TOTALSIZE(rbr_node->rbr_ni));
+				genlmsg_end(msg, trnlhdr);
+				rbr_node_put(rbr_node);
+				return genlmsg_reply(msg, info);
 			}
 		}
 	}
@@ -198,15 +192,11 @@ static int trill_cmd_set_treeroot_id(struct sk_buff *skb,
 		p = br_port_get_rcu(source_port);
 		if (p) {
 			br = p->br;
-			if (br) {
-				if (br->rbr) {
-					error = set_treeroot(br->rbr,
-							     htons(nickname));
-					if (error)
-						return -EFAULT;
-					else
-						return 0;
-				}
+			if (br && br->rbr) {
+				error = set_treeroot(br->rbr, htons(nickname));
+				if (error)
+					return -EFAULT;
+				return 0;
 			}
 		}
 	}
@@ -238,10 +228,8 @@ static int trill_cmd_get_rbridge(struct sk_buff *skb, struct genl_info *info)
 		p = br_port_get_rcu(source_port);
 		if (p) {
 			br = p->br;
-			if (br) {
-				if (br->rbr)
-					nickname = ntohs(br->rbr->nick);
-			}
+			if (br && br->rbr)
+				nickname = ntohs(br->rbr->nick);
 		}
 	}
 	msg = nlmsg_new(NLMSG_DEFAULT_SIZE, GFP_KERNEL);
