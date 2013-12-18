@@ -212,6 +212,10 @@ struct net_bridge_port
 #ifdef CONFIG_TRILL
 	uint8_t				trill_flag;
 #endif /* CONFIG_TRILL */
+#ifdef CONFIG_TRILL_VNT
+	struct vni			*vni;
+	struct list_head		list2;
+#endif /* CONFIG_TRILL_VNT */
 #ifdef CONFIG_BRIDGE_VLAN_FILTERING
 	struct net_port_vlans __rcu	*vlan_info;
 #endif
@@ -242,6 +246,9 @@ struct net_bridge
 {
 	spinlock_t			lock;
 	struct list_head		port_list;
+#ifdef CONFIG_TRILL_VNT
+	struct list_head		vni_list;
+#endif
 	struct net_device		*dev;
 
 	struct br_cpu_netstats __percpu *stats;
