@@ -22,6 +22,10 @@
 #ifdef CONFIG_TRILL
 #include "rbridge/rbr_private.h"
 #include "rbridge/rbr_netlink.h"
+#ifdef CONFIG_TRILL_VNT
+  #define FREE_SKB 1
+  #define KEEP_SKB 0
+#endif
 #endif
 
 #define BR_HASH_BITS 8
@@ -459,6 +463,11 @@ void br_flood_forward(struct net_bridge *br, struct sk_buff *skb,
 void br_endstation_deliver(struct net_bridge *br, struct sk_buff *skb);
 void br_trill_flood_forward(struct net_bridge *br, struct sk_buff *skb,
 			struct sk_buff *skb2);
+#ifdef CONFIG_TRILL_VNT
+extern void vni_flood_deliver(struct vni *vni,
+				struct sk_buff *skb,
+				int freeskb);
+#endif
 #endif
 
 /* br_if.c */

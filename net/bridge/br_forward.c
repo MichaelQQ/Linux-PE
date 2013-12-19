@@ -361,4 +361,44 @@ void br_trill_flood_forward(struct net_bridge *br, struct sk_buff *skb,
 {
 	br_trill_flood(br, skb, skb2, __br_forward);
 }
+
+#ifdef CONFIG_TRILL_VNT
+static void vni_flood(struct vni *vni, struct sk_buff *skb,
+	void (*__packet_hook)(const struct net_bridge_port *p,
+			      struct sk_buff *skb),int freeskb)
+{
+	struct net_bridge_port *p;
+	struct net_bridge_port *prev;
+	prev = NULL;
+	list_for_each_entry_rcu(p, &vni->port_list, list2) {
+		if (should_deliver(p, skb)) {
+			if (prev != NULL) {
+				struct sk_buff *skb2;
+
+				if ((skb2 = skb_clone(skb, GFP_ATOMIC)) == NULL) {
+					vni->br->dev->stats.tx_dropped++;
+					kfree_skb(skb);
+					return;
+				}
+
+				__packet_hook(prev, skb2);
+			}
+
+			prev = p;
+		}
+	}
+
+	if (prev != NULL) {
+		__packet_hook(prev, skb);
+		return;
+	}
+	if (freeskb == FREE_SKB)
+	      kfree_skb(skb);
+}
+
+void vni_flood_deliver(struct vni *vni, struct sk_buff *skb,int freeskb)
+{
+	vni_flood(vni, skb, __br_deliver, freeskb);
+}
+#endif
 #endif

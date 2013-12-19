@@ -320,7 +320,10 @@ static void rbr_encaps_prepare(struct sk_buff *skb, uint16_t egressnick,
 	struct sk_buff *skb2;
 	struct rbr *rbr;
 	struct net_bridge_port *p;
-
+#ifdef CONFIG_TRILL_VNT
+	struct vni *vni;
+	uint32_t vni_id;
+#endif
 	p = br_port_get_rcu(skb->dev);
 	if (!p || p->state == BR_STATE_DISABLED) {
 		pr_warn_ratelimited("rbr_encaps_prepare: port error\n");
@@ -357,6 +360,14 @@ static void rbr_encaps_prepare(struct sk_buff *skb, uint16_t egressnick,
 			pr_warn_ratelimited("rbr_encaps_prepare: skb_clone failed\n");
 			goto encaps_drop;
 		}
+#ifdef CONFIG_TRILL_VNT
+		vni_id = get_port_vni_id(p);
+		if (vni_id) {
+			vni = find_vni(p->br, vni_id);
+			vni_flood_deliver(vni, skb2, FREE_SKB);
+		}
+		else
+#endif
 		br_endstation_deliver(p->br, skb2);
 		if (rbr_encaps(skb, local_nick, dtrNick, 1))
 			goto encaps_drop;
@@ -633,7 +644,13 @@ rx_handler_result_t rbr_handle_frame(struct sk_buff **pskb)
 						* to remove it nickname
 						*/
 						br_fdb_update(br, p, eth_hdr(skb)->h_source, vid);
-						br_deliver(dst->dst, skb);
+						# ifdef CONFIG_TRILL_VNT
+						if (get_port_vni_id(p) !=
+							get_port_vni_id(dst->dst))
+							goto drop;
+						else
+						#endif
+							br_deliver(dst->dst, skb);
 						return RX_HANDLER_CONSUMED;
 					}
 				}
