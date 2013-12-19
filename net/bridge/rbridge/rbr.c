@@ -420,7 +420,12 @@ encaps_drop:
 	return;
 }
 
+#ifdef CONFIG_TRILL_VNT
+static void rbr_decap_finish(struct sk_buff *skb, u16 vid,
+				     uint32_t vni)
+#else
 static void rbr_decap_finish(struct sk_buff *skb, u16 vid)
+#endif
 {
 	struct net_bridge *br;
 	const unsigned char *dest = eth_hdr(skb)->h_dest;
@@ -429,10 +434,31 @@ static void rbr_decap_finish(struct sk_buff *skb, u16 vid)
 
 	br = netdev_priv(dev);
 	dst = __br_fdb_get(br, dest, vid);
-	if (dst)
-		br_deliver(dst->dst, skb);
-	else
-		br_endstation_deliver(br, skb);
+	if (dst) {
+	#ifdef CONFIG_TRILL_VNT
+		if (get_port_vni_id(dst->dst) != vni)
+			goto rbr_decap_finish_drop;
+		else
+	#endif
+			br_deliver(dst->dst, skb);
+	} else {
+		#ifdef CONFIG_TRILL_VNT
+		if (vni) {
+			struct vni *VNI;
+			if ((VNI = find_vni(br, vni)) && VNI)
+				vni_flood_deliver(VNI, skb, FREE_SKB);
+			else
+				goto rbr_decap_finish_drop;
+		} else {
+		#endif
+			do {
+				br_endstation_deliver(br, skb);
+			} while(0);
+		}
+	}
+	return;
+rbr_decap_finish_drop:
+	kfree(skb);
 }
 
 static void rbr_decaps(struct net_bridge_port *p,
@@ -441,12 +467,43 @@ static void rbr_decaps(struct net_bridge_port *p,
 {
 	struct trill_hdr *trh;
 	struct ethhdr *hdr;
+#ifdef CONFIG_TRILL_VNT
+	uint32_t vni = 0;
+#endif
 
 	if (p == NULL)
 		return;
-
 	trh = (struct trill_hdr *)skb->data;
-	skb_pull(skb, trhsize);
+	if (trhsize >= sizeof(*trh))
+		skb_pull(skb, sizeof(*trh));
+	else
+		goto rbr_decaps_drop;
+	trhsize -= sizeof(*trh);
+#ifdef CONFIG_TRILL_VNT
+	if (trill_get_optslen(ntohs(trh->th_flags))) {
+		struct trill_vnt_extension *vnt;
+		if (trhsize > sizeof(struct trill_opt))
+			skb_pull(skb, sizeof(struct trill_opt));
+		else
+			goto rbr_decaps_drop;
+		trhsize -= sizeof(struct trill_opt);
+		vnt = (struct trill_vnt_extension *) skb->data;
+		if (trill_extension_get_type(vnt->flags != VNT_EXTENSION_TYPE)) {
+			kfree(skb);
+			return;
+		}
+		vni = network_to_vni((uint32_t)trill_extension_get_vni(vnt));
+		if (trhsize >= sizeof(*vnt))
+			skb_pull(skb, sizeof(*vnt));
+		else
+			goto rbr_decaps_drop;
+		trhsize -= sizeof(*vnt);
+		if (trhsize > 0) {
+			pr_warn_ratelimited("unknown option encountred dropping frame for safty\n");
+			goto rbr_decaps_drop;
+		}
+	}
+#endif
 	skb_reset_mac_header(skb);  /* instead of the inner one */
 	skb->protocol = eth_hdr(skb)->h_proto;
 	hdr = (struct ethhdr*)skb->data;
@@ -457,7 +514,14 @@ static void rbr_decaps(struct net_bridge_port *p,
 	/* Mark bridge as source device */
 	skb->dev = p->br->dev;
 	br_fdb_update_nick(p->br, p, hdr->h_source, vid, trh->th_ingressnick);
+#ifdef CONFIG_TRILL_VNT
+	rbr_decap_finish(skb, vid, vni);
+#else
 	rbr_decap_finish(skb, vid);
+#endif
+	return;
+rbr_decaps_drop:
+	kfree_skb(skb);
 }
 
 static void rbr_recv(struct sk_buff *skb, u16 vid)
@@ -501,7 +565,6 @@ static void rbr_recv(struct sk_buff *skb, u16 vid)
 		pr_warn_ratelimited("rbr_recv: invalid nickname\n");
 		goto recv_drop;
 	}
-
 	if (trill_get_version(trill_flags) != TRILL_PROTOCOL_VERS) {
 		pr_warn_ratelimited("rbr_recv: not the same trill version\n");
 		goto recv_drop;
@@ -512,10 +575,13 @@ static void rbr_recv(struct sk_buff *skb, u16 vid)
 		pr_warn_ratelimited("rbr_recv:looping back frame check your config\n");
 		goto recv_drop;
 	}
+
+#ifndef CONFIG_TRILL_VNT
 	if (trill_get_optslen(trill_flags)) {
 		pr_warn_ratelimited("Found unknown TRILL header extension\n");
 		goto recv_drop;
 	}
+#endif
 
 	if (!trill_get_multidest(trill_flags)) {
 		/* ntohs not needed as the 2 are in the same bit form */
