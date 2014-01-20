@@ -44,9 +44,12 @@
  * frames from TRILL flagged ports must be encapsulated
  * frames must be decapsulated before forwarding them to any trill flagged port
  */
-#define TRILL_FLAG_DISABLE 0x1
-#define TRILL_FLAG_AUTO_ENABLE 0x10 /* VM port */
-#define TRILL_FLAG_MANUAL_ENABLE 0x100 /* port enabled manually */
+
+enum trill_flag {
+	TRILL_FLAG_DISABLE = 0,
+	TRILL_FLAG_AUTO_ENABLE,
+	TRILL_FLAG_MANUAL_ENABLE,
+};
 #endif
 
 /* Control of forwarding link local multicast */
@@ -214,7 +217,7 @@ struct net_bridge_port
 	struct netpoll			*np;
 #endif
 #ifdef CONFIG_TRILL
-	uint8_t				trill_flag;
+	enum trill_flag			trill_flag;
 #endif /* CONFIG_TRILL */
 #ifdef CONFIG_TRILL_VNT
 	struct vni			*vni;
