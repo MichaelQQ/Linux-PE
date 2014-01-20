@@ -144,7 +144,7 @@ static void rbr_fwd_finish(struct sk_buff *skb, u16 vid)
 		       dst->dst->dev->addr_len);
 		br_forward(dst->dst, skb, NULL);
 	} else {
-		br_flood_forward_nic(br, skb, NULL);
+		br_trill_flood_forward(br, skb, NULL);
 	}
 }
 
@@ -357,7 +357,7 @@ static void rbr_encaps_prepare(struct sk_buff *skb, uint16_t egressnick,
 			pr_warn_ratelimited("rbr_encaps_prepare: skb_clone failed\n");
 			goto encaps_drop;
 		}
-		br_flood_deliver_vif(p->br, skb2);
+		br_endstation_deliver(p->br, skb2);
 		if (rbr_encaps(skb, local_nick, dtrNick, 1))
 			goto encaps_drop;
 		rbr_multidest_fwd(p, skb, dtrNick, local_nick, NULL, vid, true);
@@ -386,7 +386,7 @@ static void rbr_decap_finish(struct sk_buff *skb, u16 vid)
 	if (dst)
 		br_deliver(dst->dst, skb);
 	else
-		br_flood_deliver_vif(br, skb);
+		br_endstation_deliver(br, skb);
 }
 
 static void rbr_decaps(struct net_bridge_port *p,

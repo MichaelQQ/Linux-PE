@@ -286,7 +286,7 @@ void br_multicast_forward(struct net_bridge_mdb_entry *mdst,
 
 #ifdef CONFIG_TRILL
 /* called with rcu_read_lock */
-static void br_flood_vif(struct net_bridge *br, struct sk_buff *skb,
+static void br_endstation_flood(struct net_bridge *br, struct sk_buff *skb,
 			 void (*__packet_hook)(const struct net_bridge_port *p,
 					       struct sk_buff *skb))
 {
@@ -317,13 +317,13 @@ static void br_flood_vif(struct net_bridge *br, struct sk_buff *skb,
 }
 
 /* called with rcu_read_lock */
-void br_flood_deliver_vif(struct net_bridge *br, struct sk_buff *skb)
+void br_endstation_deliver(struct net_bridge *br, struct sk_buff *skb)
 {
-	br_flood_vif(br, skb, __br_deliver);
+	br_endstation_flood(br, skb, __br_deliver);
 }
 
 /* called under bridge lock */
-static void br_flood_nic(struct net_bridge *br, struct sk_buff *skb,
+static void br_trill_flood(struct net_bridge *br, struct sk_buff *skb,
 			 struct sk_buff *skb0,
 			 void (*__packet_hook)(const struct net_bridge_port *p,
 					       struct sk_buff *skb))
@@ -356,9 +356,9 @@ out:
 }
 
 /* called with rcu_read_lock */
-void br_flood_forward_nic(struct net_bridge *br, struct sk_buff *skb,
+void br_trill_flood_forward(struct net_bridge *br, struct sk_buff *skb,
 			  struct sk_buff *skb2)
 {
-	br_flood_nic(br, skb, skb2, __br_forward);
+	br_trill_flood(br, skb, skb2, __br_forward);
 }
 #endif

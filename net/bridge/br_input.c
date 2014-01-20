@@ -123,7 +123,7 @@ int rbr_handle_ether_frame_finish(struct sk_buff *skb)
 			dst->used = jiffies;
 			br_forward(dst->dst, skb, skb2);
 		} else {
-			br_flood_forward_nic(br, skb, skb2);
+			br_trill_flood_forward(br, skb, skb2);
 		}
 	}
 

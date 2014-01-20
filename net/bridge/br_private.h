@@ -449,8 +449,8 @@ void br_flood_deliver(struct net_bridge *br, struct sk_buff *skb, bool unicast);
 void br_flood_forward(struct net_bridge *br, struct sk_buff *skb,
 		      struct sk_buff *skb2, bool unicast);
 #ifdef CONFIG_TRILL
-void br_flood_deliver_vif(struct net_bridge *br, struct sk_buff *skb);
-void br_flood_forward_nic(struct net_bridge *br, struct sk_buff *skb,
+void br_endstation_deliver(struct net_bridge *br, struct sk_buff *skb);
+void br_trill_flood_forward(struct net_bridge *br, struct sk_buff *skb,
 			struct sk_buff *skb2);
 #endif
 
