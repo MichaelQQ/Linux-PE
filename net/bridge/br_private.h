@@ -46,7 +46,7 @@
  */
 #define TRILL_FLAG_DISABLE 0x1
 #define TRILL_FLAG_AUTO_ENABLE 0x10 /* VM port */
-#define TRILL_FLAG_MANUEL_ENABLE 0x100 /* port enabled manually */
+#define TRILL_FLAG_MANUAL_ENABLE 0x100 /* port enabled manually */
 #endif
 
 /* Control of forwarding link local multicast */

@@ -299,7 +299,7 @@ static int old_dev_ioctl(struct net_device *dev, struct ifreq *rq, int cmd)
 			ret = -EINVAL;
 		} else {
 			if (p->trill_flag == TRILL_FLAG_DISABLE)
-				p->trill_flag = TRILL_FLAG_MANUEL_ENABLE;
+				p->trill_flag = TRILL_FLAG_MANUAL_ENABLE;
 			id = args[2];
 			if (id > 0)
 				ret = vni_add_port(p, id);
