@@ -278,7 +278,7 @@ static inline u32 vni_to_network(u32 vni)
 
 static inline u32 network_to_vni(u32 inv)
 {
-  return ((((inv) & 0x00FFF000) << 4) | ((inv) & 0x00000FFF));
+	return ((((inv) & 0x00FFF000) << 4) | ((inv) & 0x00000FFF));
 }
 #endif /* CONFIG_TRILL_VNT */
 #endif /* !_LINUX_IF_TRILL_H_ */
