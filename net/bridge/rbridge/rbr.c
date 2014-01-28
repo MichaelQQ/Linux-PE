@@ -661,7 +661,7 @@ static void rbr_recv(struct sk_buff *skb, u16 vid)
 
 	/* Check hop count before doing any forwarding */
 	if (trill_get_hopcount(trill_flags) == 0) {
-		pr_warn_ratelimited("rbr_recv:multicast hop ount limit reached\n");
+		pr_warn_ratelimited("rbr_recv: multicast hop count limit reached\n");
 		rbr_node_put(dest);
 		goto recv_drop;
 	}
