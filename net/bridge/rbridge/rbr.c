@@ -538,6 +538,15 @@ static void rbr_recv(struct sk_buff *skb, u16 vid)
 	struct rbr_node *source_node = NULL;
 	struct rbr_node *adj = NULL;
 
+	/* For trill frame the outer mac destination must correspond to localhost
+	* address, if not frame must be discarded
+	* such scenario is possible when switch flood frames on all ports
+	* if frame are not discarded they will loop until reaching the
+	* hop_count limit
+	*/
+	if (!memcmp(p->dev->dev_addr, eth_hdr(skb)->h_dest, ETH_ALEN) == 0)
+		goto recv_drop;
+
 	p = br_port_get_rcu(skb->dev);
 	if (!p || p->state == BR_STATE_DISABLED) {
 		pr_warn_ratelimited("rbr_recv: port error\n");
