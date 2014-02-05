@@ -784,11 +784,6 @@ rx_handler_result_t rbr_handle_frame(struct sk_buff **pskb)
 					skb->pkt_type = PACKET_HOST;
 					br_handle_frame_finish(skb);
 					return RX_HANDLER_CONSUMED;
-				/* handle arp */
-				} else if (is_broadcast_ether_addr(eth_hdr(skb)->h_dest)) {
-					br_fdb_update(br, p, eth_hdr(skb)->h_source, vid);
-					rbr_handle_ether_frame_finish(skb);
-					return RX_HANDLER_CONSUMED;
 				} else {
 					/* packet is not from trill type drop it */
 					goto drop;
