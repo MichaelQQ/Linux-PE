@@ -52,7 +52,8 @@ uint32_t get_port_vni_id(struct net_bridge_port *p) {
 	return (port_has_vni(p) ? p->vni->vni_id : 0);
 }
 
-void vni_del_port(struct net_bridge_port *p) {
+
+static void __vni_del_port(struct net_bridge_port *p) {
 	if (!p)
 		return;
 	if (!port_has_vni(p))
@@ -60,6 +61,21 @@ void vni_del_port(struct net_bridge_port *p) {
 	list_del_rcu(&p->list2);
 	p->vni = NULL;
 }
+
+void vni_del_port(struct net_bridge_port *p) {
+	struct vni *vni;
+	uint32_t id;
+
+	if (!p->vni)
+		return;
+	id = p->vni->vni_id;
+	__vni_del_port(p);
+	if (!p->br)
+		return;
+	vni = find_vni(p->br, id);
+	if (list_empty(&vni->port_list))
+		del_vni(vni);
+};
 
 bool vni_add_port(struct net_bridge_port *p, uint32_t id) {
 	struct vni *vni;
@@ -88,7 +104,7 @@ void del_vni(struct vni* vni) {
 	struct net_bridge_port *p, *n;
 
 	list_for_each_entry_safe(p, n, &vni->port_list, list2) {
-		vni_del_port(p);
+		__vni_del_port(p);
 	}
 	list_del_rcu(&vni->list);
 	call_rcu(&vni->rcu, destroy_vni_rcu);
