@@ -458,7 +458,7 @@ static void rbr_decap_finish(struct sk_buff *skb, u16 vid)
 	}
 	return;
 rbr_decap_finish_drop:
-	kfree(skb);
+	kfree_skb(skb);
 }
 
 static void rbr_decaps(struct net_bridge_port *p,
@@ -489,7 +489,7 @@ static void rbr_decaps(struct net_bridge_port *p,
 		trhsize -= sizeof(struct trill_opt);
 		vnt = (struct trill_vnt_extension *) skb->data;
 		if (trill_extension_get_type(vnt->flags != VNT_EXTENSION_TYPE)) {
-			kfree(skb);
+			kfree_skb(skb);
 			return;
 		}
 		vni = network_to_vni((uint32_t)trill_extension_get_vni(vnt));
