@@ -472,7 +472,7 @@ static void rbr_decaps(struct net_bridge_port *p,
 #endif
 
 	if (p == NULL)
-		return;
+		goto rbr_decaps_drop;
 	trh = (struct trill_hdr *)skb->data;
 	if (trhsize >= sizeof(*trh))
 		skb_pull(skb, sizeof(*trh));
