@@ -57,6 +57,9 @@
 #ifdef CONFIG_IGB_DCA
 #include <linux/dca.h>
 #endif
+#ifdef CONFIG_TRILL
+#include <linux/if_trill.h>
+#endif
 #include <linux/i2c.h>
 #include "igb.h"
 
@@ -6461,6 +6464,12 @@ static unsigned int igb_get_headlen(unsigned char *data,
 		/* l2 headers */
 		struct ethhdr *eth;
 		struct vlan_hdr *vlan;
+#ifdef CONFIG_TRILL
+		struct trill_hdr *trill;
+		struct trill_opt *trill_opt;
+		struct ethhdr *eth2;
+		struct vlan_hdr *vlan2;
+#endif
 		/* l3 headers */
 		struct iphdr *ipv4;
 		struct ipv6hdr *ipv6;
@@ -6468,6 +6477,9 @@ static unsigned int igb_get_headlen(unsigned char *data,
 	__be16 protocol;
 	u8 nexthdr = 0;	/* default to not TCP */
 	u8 hlen;
+#ifdef CONFIG_TRILL
+	u8 trill_op_len;
+#endif
 
 	/* this should never happen, but better safe than sorry */
 	if (max_len < ETH_HLEN)
@@ -6489,6 +6501,27 @@ static unsigned int igb_get_headlen(unsigned char *data,
 		hdr.network += VLAN_HLEN;
 	}
 
+#ifdef CONFIG_TRILL
+	if (protocol == __constant_htons(ETH_P_TRILL)) {
+		if ((hdr.network - data) > (max_len - sizeof(hdr.trill)))
+			return max_len;
+		trill_op_len = trill_get_optslen(hdr.trill->th_flags);
+		hdr.network += sizeof(hdr.trill);
+		if (trill_op_len)
+			hdr.network += trill_op_len;
+		/* inner header */
+		protocol = hdr.eth2->h_proto;
+		hdr.network += ETH_HLEN;
+
+		/* handle any vlan tag if present */
+		if (protocol == __constant_htons(ETH_P_8021Q)) {
+			if ((hdr.network - data) > (max_len - VLAN_HLEN))
+				return max_len;
+			protocol = hdr.vlan2->h_vlan_encapsulated_proto;
+			hdr.network += VLAN_HLEN;
+		}
+	}
+#endif
 	/* handle L3 protocols */
 	if (protocol == __constant_htons(ETH_P_IP)) {
 		if ((hdr.network - data) > (max_len - sizeof(struct iphdr)))
