@@ -176,13 +176,13 @@ void br_dev_delete(struct net_device *dev, struct list_head *head)
 	struct vni *vni, *tmp;
 #endif
 
-#ifdef CONFIG_TRILL
-	br_trill_set_enabled(br, 0);
-#endif
-
 	list_for_each_entry_safe(p, n, &br->port_list, list) {
 		del_nbp(p);
 	}
+
+#ifdef CONFIG_TRILL
+	br_trill_set_enabled(br, 0);
+#endif
 
 #ifdef CONFIG_TRILL_VNT
 	list_for_each_entry_safe(vni, tmp, &br->vni_list, list) {
