@@ -449,15 +449,18 @@ static void rbr_decap_finish(struct sk_buff *skb, u16 vid)
 				vni_flood_deliver(VNI, skb, FREE_SKB);
 			else
 				goto rbr_decap_finish_drop;
-		} else {
+		} else
 		#endif
+		{
 			do {
 				br_endstation_deliver(br, skb);
 			} while(0);
 		}
 	}
 	return;
+#ifdef CONFIG_TRILL_VNT
 rbr_decap_finish_drop:
+#endif
 	kfree_skb(skb);
 }
 
