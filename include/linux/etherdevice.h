@@ -54,7 +54,7 @@ struct net_device *alloc_etherdev_mqs(int sizeof_priv, unsigned int txqs,
 static const u8 eth_reserved_addr_base[ETH_ALEN] __aligned(2) =
 { 0x01, 0x80, 0xc2, 0x00, 0x00, 0x00 };
 #ifdef CONFIG_TRILL
-static const u8 eth_reserved_addr_rbridge[ETH_ALEN] __aligned(2) =
+static const u8 eth_reserved_addr_trill[ETH_ALEN] __aligned(2) =
 { 0x01, 0x80, 0xc2, 0x00, 0x00, 0x40 };
 static const u8 eth_reserved_addr_vif[ETH_ALEN] __aligned(2) =
 { 0xfe, 0xff, 0xff, 0xff, 0xff, 0xff };
@@ -353,14 +353,18 @@ static inline unsigned long compare_ether_header(const void *a, const void *b)
 
 #ifdef CONFIG_TRILL
 /**
- * is_rbr_address - check if it is a specific Rbridge brodcast mac address
- * @addr1: Pointer to a six-byte array containing the Ethernet address
+ * is_trill_address - check if it is a specific Trill brodcast mac address
+ * @addr: Pointer to a six-byte array containing the Ethernet address
  *
- * returns true if it is a RBridge brodcast address 01:80:C2:00:00:40
+ * returns true if it is a Trill brodcast address 01:80:C2:00:00:4X
  */
-static inline bool is_rbr_address(const u8 *addr1)
+static inline bool is_trill_address(const u8 *addr)
 {
-	return ether_addr_equal(addr1, eth_reserved_addr_rbridge);
+	__be16 *a = (__be16 *)addr;
+	static const __be16 *b = (const __be16 *)eth_reserved_addr_trill;
+	static const __be16 m = cpu_to_be16(0xfff0);
+
+	return ((a[0] ^ b[0]) | (a[1] ^ b[1]) | ((a[2] ^ b[2]) & m)) == 0;
 }
 /**
  * is_vif_address -heck if it is a specific vif mac address

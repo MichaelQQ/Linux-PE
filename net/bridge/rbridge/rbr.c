@@ -738,7 +738,7 @@ rx_handler_result_t rbr_handle_frame(struct sk_buff **pskb)
 		if (!br_allowed_ingress(p->br, nbp_get_vlan_info(p), skb, &vid))
 			goto drop;
 		/* don't forward any BPDU */
-		if (is_rbr_address((const u8*)&eth_hdr(skb)->h_dest)) {
+		if (is_trill_address((const u8*)&eth_hdr(skb)->h_dest)) {
 			br_fdb_update(br, p, eth_hdr(skb)->h_source, vid);
 			/* BPDU has to be dropped */
 			goto drop;
