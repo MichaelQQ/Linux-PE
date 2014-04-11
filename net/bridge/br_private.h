@@ -485,9 +485,6 @@ netdev_features_t br_features_recompute(struct net_bridge *br,
 					netdev_features_t features);
 
 /* br_input.c */
-#ifdef CONFIG_TRILL
-int rbr_handle_ether_frame_finish(struct sk_buff *skb);
-#endif
 int br_handle_frame_finish(struct sk_buff *skb);
 rx_handler_result_t br_handle_frame(struct sk_buff **pskb);
 
