@@ -178,6 +178,8 @@ static void rbr_fwd(struct net_bridge_port *p, struct sk_buff *skb,
 	return;
 
 dest_fwd_fail:
+	if (p && p->br)
+		p->br->dev->stats.tx_dropped++;
 	kfree_skb(skb);
 	return;
 }
@@ -263,6 +265,8 @@ static int rbr_multidest_fwd(struct net_bridge_port *p,
 	return 0;
 
 multidest_fwd_fail:
+	if (p && p->br)
+		p->br->dev->stats.tx_dropped++;
 	kfree_skb(skb);
 	return -1;
 }
@@ -416,6 +420,8 @@ static void rbr_encaps_prepare(struct sk_buff *skb, uint16_t egressnick,
 	return;
 
 encaps_drop:
+	if (p && p->br)
+		p->br->dev->stats.tx_dropped++;
 	kfree_skb(skb);
 	return;
 }
@@ -461,6 +467,8 @@ static void rbr_decap_finish(struct sk_buff *skb, u16 vid)
 #ifdef CONFIG_TRILL_VNT
 rbr_decap_finish_drop:
 #endif
+	if (br)
+		br->dev->stats.rx_dropped++;
 	kfree_skb(skb);
 }
 
@@ -524,6 +532,8 @@ static void rbr_decaps(struct net_bridge_port *p,
 #endif
 	return;
 rbr_decaps_drop:
+	if (p && p->br)
+		p->br->dev->stats.rx_dropped++;
 	kfree_skb(skb);
 }
 
@@ -698,6 +708,8 @@ static void rbr_recv(struct sk_buff *skb, u16 vid)
 	return;
 
 recv_drop:
+	if (p && p->br)
+		p->br->dev->stats.rx_dropped++;
 	kfree_skb(skb);
 	return;
 }
@@ -733,6 +745,7 @@ rx_handler_result_t rbr_handle_frame(struct sk_buff **pskb)
 			return RX_HANDLER_CONSUMED;
 		if (!is_valid_ether_addr(eth_hdr(skb)->h_source)) {
 			pr_warn_ratelimited("rbr_handle_frame:invalid src address\n");
+			br->dev->stats.rx_dropped++;
 			goto drop;
 		}
 		if (!br_allowed_ingress(p->br, nbp_get_vlan_info(p), skb, &vid))
@@ -754,11 +767,14 @@ rx_handler_result_t rbr_handle_frame(struct sk_buff **pskb)
 						/* After migration distent vm to local node we need
 						* to remove it nickname
 						*/
-						br_fdb_update(br, p, eth_hdr(skb)->h_source, vid);
+						br_fdb_update(br,
+							      p, eth_hdr(skb)->h_source);
 						# ifdef CONFIG_TRILL_VNT
 						if (get_port_vni_id(p) !=
-							get_port_vni_id(dst->dst))
+							get_port_vni_id(dst->dst)) {
+							br->dev->stats.rx_dropped++;
 							goto drop;
+						}
 						else
 						#endif
 							br_deliver(dst->dst, skb);
@@ -787,6 +803,7 @@ rx_handler_result_t rbr_handle_frame(struct sk_buff **pskb)
 					return RX_HANDLER_CONSUMED;
 				} else {
 					/* packet is not from trill type drop it */
+					br->dev->stats.rx_dropped++;
 					goto drop;
 				}
 			}
