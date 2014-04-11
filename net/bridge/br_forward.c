@@ -302,8 +302,7 @@ static void br_endstation_flood(struct net_bridge *br, struct sk_buff *skb,
 
 				if ((skb2 = skb_clone(skb, GFP_ATOMIC)) == NULL) {
 					br->dev->stats.tx_dropped++;
-					kfree_skb(skb);
-					return;
+					goto out;
 				}
 
 				__packet_hook(prev, skb2);
@@ -312,8 +311,13 @@ static void br_endstation_flood(struct net_bridge *br, struct sk_buff *skb,
 		}
 	}
 
-	if (prev != NULL)
-		__packet_hook(prev, skb);
+	if (!prev)
+		goto out;
+
+	__packet_hook(prev, skb);
+	return;
+out:
+	kfree_skb(skb);
 }
 
 /* called with rcu_read_lock */
