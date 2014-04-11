@@ -797,7 +797,8 @@ rx_handler_result_t rbr_handle_frame(struct sk_buff **pskb)
 				return RX_HANDLER_CONSUMED;
 			} else {
 				/* packet is destinated to host port */
-				if (is_local_host_port(p, eth_hdr(skb)->h_dest, vid)) {
+				if (!compare_ether_addr(p->br->dev->dev_addr,
+					eth_hdr(skb)->h_dest)) {
 					skb->pkt_type = PACKET_HOST;
 					br_handle_frame_finish(skb);
 					return RX_HANDLER_CONSUMED;
