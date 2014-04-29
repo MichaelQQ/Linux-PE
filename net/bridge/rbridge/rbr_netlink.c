@@ -149,23 +149,41 @@ static int trill_cmd_get_nicks_info(struct sk_buff *skb, struct genl_info *info)
 		goto fail;
 
 	rbr_node = rbr_find_node(p->br->rbr, rbr_ni.nick);
+	if (!rbr_node)
+		goto fail;
+
+	err = -ENOMEM;
 	msg = nlmsg_new(NLMSG_DEFAULT_SIZE, GFP_KERNEL);
+	if (!msg)
+		goto fail_put;
+
 	trnlhdr = genlmsg_put(msg, info->snd_portid, trill_genlseqnb,
 			      &trill_genl_family, sizeof(*trnlhdr),
 			      TRILL_CMD_GET_NICKS_INFO);
+	if (!trnlhdr)
+		goto fail_free;
+
 	attr = nla_reserve(msg, TRILL_ATTR_BIN,
 			   RBR_NI_TOTALSIZE(rbr_node->rbr_ni));
+	if (!attr)
+		goto fail_free;
+
 	data = nla_data(attr);
 	trnlhdr->ifindex = KERNL_RESPONSE_INTERFACE;
 	memcpy(data, rbr_node->rbr_ni, RBR_NI_TOTALSIZE(rbr_node->rbr_ni));
 	genlmsg_end(msg, trnlhdr);
 	rbr_node_put(rbr_node);
+
 	err = genlmsg_reply(msg, info);
 	if (err)
-		goto fail;
+		goto fail_put;
 
 	return 0;
 
+fail_free:
+	nlmsg_free(msg);
+fail_put:
+	rbr_node_put(rbr_node);
 fail:
 	printk(KERN_WARNING "trill_cmd_get_nicks_info FAILED\n");
 	return err;
@@ -243,10 +261,17 @@ static int trill_cmd_get_rbridge(struct sk_buff *skb, struct genl_info *info)
 	else
 		nickname = RBRIDGE_NICKNAME_NONE;
 
+	err = -ENOMEM;
 	msg = nlmsg_new(NLMSG_DEFAULT_SIZE, GFP_KERNEL);
+	if (!msg)
+		goto fail;
+
 	trnlhdr = genlmsg_put(msg, info->snd_portid, trill_genlseqnb,
 			      &trill_genl_family, sizeof(*trnlhdr),
 			      TRILL_CMD_GET_RBRIDGE);
+	if (!trnlhdr)
+		goto fail_free;
+
 	trnlhdr->ifindex = KERNL_RESPONSE_INTERFACE;
 	nla_put_u16(msg, TRILL_ATTR_U16, nickname);
 	genlmsg_end(msg, trnlhdr);
@@ -257,6 +282,8 @@ static int trill_cmd_get_rbridge(struct sk_buff *skb, struct genl_info *info)
 
 	return 0;
 
+fail_free:
+	nlmsg_free(msg);
 fail:
 	printk(KERN_WARNING "trill_cmd_get_rbridge FAILED\n");
 	return err;
