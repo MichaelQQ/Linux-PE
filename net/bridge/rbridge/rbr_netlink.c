@@ -18,13 +18,8 @@
 #include <linux/socket.h>
 #include "rbr_netlink.h"
 
-int trill_genlseqnb = 0; /* sequence number */
-
-static struct nla_policy TRILL_U16_POLICY [TRILL_ATTR_MAX + 1] = {
+static struct nla_policy attrs_policy [TRILL_ATTR_MAX + 1] = {
 	[TRILL_ATTR_U16] = {.type = NLA_U16},
-};
-
-static struct nla_policy TRILL_BIN_POLICY [TRILL_ATTR_MAX + 1] = {
 	[TRILL_ATTR_BIN] = {.type = NLA_UNSPEC},
 };
 
@@ -95,7 +90,6 @@ static int trill_cmd_set_nicks_info(struct sk_buff *skb, struct genl_info *info)
 	struct net_bridge_port *p = NULL;
 	int err = -EINVAL;
 
-	trill_genlseqnb = info->snd_seq;
 	nla_memcpy(&rbr_ni, info->attrs[TRILL_ATTR_BIN], sizeof(rbr_ni));
 	if (!VALID_NICK(rbr_ni.nick))
 		goto fail;
@@ -135,7 +129,6 @@ static int trill_cmd_get_nicks_info(struct sk_buff *skb, struct genl_info *info)
 	struct rbr_node *rbr_node;
 	int err = -EINVAL;
 
-	trill_genlseqnb = info->snd_seq;
 	nla_memcpy(&rbr_ni, info->attrs[TRILL_ATTR_BIN], sizeof(rbr_ni));
 	trnlhdr = info->userhdr;
 	if (trnlhdr->ifindex)
@@ -157,7 +150,7 @@ static int trill_cmd_get_nicks_info(struct sk_buff *skb, struct genl_info *info)
 	if (!msg)
 		goto fail_put;
 
-	trnlhdr = genlmsg_put(msg, info->snd_portid, trill_genlseqnb,
+	trnlhdr = genlmsg_put(msg, info->snd_portid, info->snd_seq,
 			      &trill_genl_family, sizeof(*trnlhdr),
 			      TRILL_CMD_GET_NICKS_INFO);
 	if (!trnlhdr)
@@ -205,7 +198,6 @@ static int trill_cmd_set_treeroot_id(struct sk_buff *skb,
 	struct net *net = sock_net(skb->sk);
 	struct net_bridge_port *p = NULL;
 
-	trill_genlseqnb = info->snd_seq;
 	nickname = nla_get_u16(info->attrs[TRILL_ATTR_U16]);
 	trnlhdr = info->userhdr;
 	if (trnlhdr->ifindex)
@@ -244,7 +236,6 @@ static int trill_cmd_get_rbridge(struct sk_buff *skb, struct genl_info *info)
 	u16 nickname;
 	int err = -EINVAL;
 
-	trill_genlseqnb = info->snd_seq;
 	trnlhdr = info->userhdr;
 	if (trnlhdr->ifindex)
 		source_port = __dev_get_by_index(net, trnlhdr->ifindex);
@@ -266,7 +257,7 @@ static int trill_cmd_get_rbridge(struct sk_buff *skb, struct genl_info *info)
 	if (!msg)
 		goto fail;
 
-	trnlhdr = genlmsg_put(msg, info->snd_portid, trill_genlseqnb,
+	trnlhdr = genlmsg_put(msg, info->snd_portid, info->snd_seq,
 			      &trill_genl_family, sizeof(*trnlhdr),
 			      TRILL_CMD_GET_RBRIDGE);
 	if (!trnlhdr)
@@ -301,7 +292,6 @@ static int trill_cmd_set_rbridge(struct sk_buff *skb, struct genl_info *info)
 	struct net *net = sock_net(skb->sk);
 	u16 nickname = nla_get_u16(info->attrs[TRILL_ATTR_U16]);
 
-	trill_genlseqnb = info->snd_seq;
 	trnlhdr = info->userhdr;
 	if (trnlhdr->ifindex)
 		source_port = __dev_get_by_index(net, trnlhdr->ifindex);
@@ -353,37 +343,37 @@ static struct genl_ops trill_genl_ops[] = {
 	{
 		.cmd = TRILL_CMD_SET_NICKS_INFO,
 		.flags = GENL_ADMIN_PERM, /* Requires CAP_NET_ADMIN privilege. */
-		.policy = TRILL_BIN_POLICY,
+		.policy = attrs_policy,
 		.doit = trill_cmd_set_nicks_info,
 	},
 	{
 		.cmd = TRILL_CMD_GET_NICKS_INFO,
 		.flags = GENL_ADMIN_PERM, /* Requires CAP_NET_ADMIN privilege. */
-		.policy = TRILL_BIN_POLICY,
+		.policy = attrs_policy,
 		.doit = trill_cmd_get_nicks_info,
 	},
 	{
 		.cmd = TRILL_CMD_ADD_NICKS_INFO,
 		.flags = GENL_ADMIN_PERM, /* Requires CAP_NET_ADMIN privilege. */
-		.policy = TRILL_BIN_POLICY,
+		.policy = attrs_policy,
 		.doit = trill_cmd_add_nicks_info,
 	},
 	{
 		.cmd = TRILL_CMD_SET_TREEROOT_ID,
 		.flags = GENL_ADMIN_PERM, /* Requires CAP_NET_ADMIN privilege. */
-		.policy = TRILL_U16_POLICY,
+		.policy = attrs_policy,
 		.doit = trill_cmd_set_treeroot_id,
 	},
 	{
 		.cmd = TRILL_CMD_GET_RBRIDGE,
 		.flags = GENL_ADMIN_PERM, /* Requires CAP_NET_ADMIN privilege. */
-		.policy = TRILL_U16_POLICY,
+		.policy = attrs_policy,
 		.doit = trill_cmd_get_rbridge,
 	},
 	{
 		.cmd = TRILL_CMD_SET_RBRIDGE,
 		.flags = GENL_ADMIN_PERM, /* Requires CAP_NET_ADMIN privilege. */
-		.policy = TRILL_U16_POLICY,
+		.policy = attrs_policy,
 		.doit = trill_cmd_set_rbridge,
 	},
 	{
@@ -394,7 +384,7 @@ static struct genl_ops trill_genl_ops[] = {
 	{
 		.cmd = TRILL_CMD_NICK_FLUSH,
 		.flags = GENL_ADMIN_PERM, /* Requires CAP_NET_ADMIN privilege. */
-		.policy = TRILL_U16_POLICY,
+		.policy = attrs_policy,
 		.doit = trill_cmd_nick_flush,
 	},
 };
