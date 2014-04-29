@@ -93,29 +93,30 @@ static int trill_cmd_set_nicks_info(struct sk_buff *skb, struct genl_info *info)
 	struct net_device *source_port = NULL;
 	struct net *net = sock_net(skb->sk);
 	struct net_bridge_port *p = NULL;
-	struct net_bridge *br = NULL;
 
 	trill_genlseqnb = info->snd_seq;
 	nla_memcpy(&rbr_ni, info->attrs[TRILL_ATTR_BIN], sizeof(rbr_ni));
 	if (!VALID_NICK(rbr_ni.nick))
-		return -EFAULT;
+		goto fail;
 
 	trnlhdr = info->userhdr;
 	if (trnlhdr->ifindex)
 		source_port = __dev_get_by_index(net, trnlhdr->ifindex);
-	if (source_port) {
-		p = br_port_get_rcu(source_port);
-		if (p) {
-			br = p->br;
-			if (br && br->rbr) {
-				if (create_node(p, br->rbr, &rbr_ni, info))
-					return -EFAULT;
-				return 0;
-			}
-		}
-	}
-	printk(KERN_WARNING "trill_cmd_set_nicks_info FAILED\n");
 
+	if (!source_port)
+		goto fail;
+
+	p = br_port_get_rcu(source_port);
+	if (!p || !(p->br) || !(p->br->rbr))
+		goto fail;
+
+	if (create_node(p, p->br->rbr, &rbr_ni, info))
+		goto fail;
+
+	return 0;
+
+fail:
+	printk(KERN_WARNING "trill_cmd_set_nicks_info FAILED\n");
 	return -EFAULT;
 }
 
@@ -129,42 +130,43 @@ static int trill_cmd_get_nicks_info(struct sk_buff *skb, struct genl_info *info)
 	struct net_device *source_port = NULL;
 	struct net *net = sock_net(skb->sk);
 	struct net_bridge_port *p = NULL;
-	struct net_bridge *br = NULL;
+	struct rbr_node *rbr_node;
+	int err = -EFAULT;
 
 	trill_genlseqnb = info->snd_seq;
 	nla_memcpy(&rbr_ni, info->attrs[TRILL_ATTR_BIN], sizeof(rbr_ni));
 	trnlhdr = info->userhdr;
 	if (trnlhdr->ifindex)
 		source_port = __dev_get_by_index(net, trnlhdr->ifindex);
-	if (source_port) {
-		p = br_port_get_rcu(source_port);
-		if (p) {
-			br = p->br;
-			if (br && br->rbr) {
-				struct rbr_node *rbr_node;
 
-				rbr_node = rbr_find_node(br->rbr, rbr_ni.nick);
-				msg = nlmsg_new(NLMSG_DEFAULT_SIZE, GFP_KERNEL);
-				trnlhdr = genlmsg_put(msg,
-						      info->snd_portid,
-						      trill_genlseqnb,
-						      &trill_genl_family,
-						      sizeof(*trnlhdr),
-						      TRILL_CMD_GET_NICKS_INFO);
-				attr = nla_reserve(msg, TRILL_ATTR_BIN,
-						   RBR_NI_TOTALSIZE(rbr_node->rbr_ni));
-				data = nla_data(attr);
-				trnlhdr->ifindex = KERNL_RESPONSE_INTERFACE;
-				memcpy(data, rbr_node->rbr_ni, RBR_NI_TOTALSIZE(rbr_node->rbr_ni));
-				genlmsg_end(msg, trnlhdr);
-				rbr_node_put(rbr_node);
-				return genlmsg_reply(msg, info);
-			}
-		}
-	}
+	if (!source_port)
+		goto fail;
+
+	p = br_port_get_rcu(source_port);
+	if (!p || !(p->br) || !(p->br->rbr))
+		goto fail;
+
+	rbr_node = rbr_find_node(p->br->rbr, rbr_ni.nick);
+	msg = nlmsg_new(NLMSG_DEFAULT_SIZE, GFP_KERNEL);
+	trnlhdr = genlmsg_put(msg, info->snd_portid, trill_genlseqnb,
+			      &trill_genl_family, sizeof(*trnlhdr),
+			      TRILL_CMD_GET_NICKS_INFO);
+	attr = nla_reserve(msg, TRILL_ATTR_BIN,
+			   RBR_NI_TOTALSIZE(rbr_node->rbr_ni));
+	data = nla_data(attr);
+	trnlhdr->ifindex = KERNL_RESPONSE_INTERFACE;
+	memcpy(data, rbr_node->rbr_ni, RBR_NI_TOTALSIZE(rbr_node->rbr_ni));
+	genlmsg_end(msg, trnlhdr);
+	rbr_node_put(rbr_node);
+	err = genlmsg_reply(msg, info);
+	if (err)
+		goto fail;
+
+	return 0;
+
+fail:
 	printk(KERN_WARNING "trill_cmd_get_nicks_info FAILED\n");
-
-	return -EFAULT;
+	return err;
 }
 
 static int trill_cmd_add_nicks_info(struct sk_buff *skb, struct genl_info *info)
@@ -182,27 +184,28 @@ static int trill_cmd_set_treeroot_id(struct sk_buff *skb,
 	struct net_device *source_port = NULL;
 	struct net *net = sock_net(skb->sk);
 	struct net_bridge_port *p = NULL;
-	struct net_bridge *br = NULL;
 
 	trill_genlseqnb = info->snd_seq;
 	nickname = nla_get_u16(info->attrs[TRILL_ATTR_U16]);
 	trnlhdr = info->userhdr;
 	if (trnlhdr->ifindex)
 		source_port = __dev_get_by_index(net, trnlhdr->ifindex);
-	if (source_port) {
-		p = br_port_get_rcu(source_port);
-		if (p) {
-			br = p->br;
-			if (br && br->rbr) {
-				error = set_treeroot(br->rbr, htons(nickname));
-				if (error)
-					return -EFAULT;
-				return 0;
-			}
-		}
-	}
-	printk(KERN_WARNING "trill_cmd_set_treeroot_id FAILED\n");
 
+	if (!source_port)
+		goto fail;
+
+	p = br_port_get_rcu(source_port);
+	if (!p || !(p->br) || !(p->br->rbr))
+		goto fail;
+
+	error = set_treeroot(p->br->rbr, htons(nickname));
+	if (error)
+		goto fail;
+
+	return 0;
+
+fail:
+	printk(KERN_WARNING "trill_cmd_set_treeroot_id FAILED\n");
 	return -EFAULT;
 }
 
@@ -216,33 +219,45 @@ static int trill_cmd_get_rbridge(struct sk_buff *skb, struct genl_info *info)
 	struct trill_nl_header *trnlhdr;
 	struct sk_buff *msg;
 	struct net_bridge_port *p;
-	struct net_bridge *br;
 	struct net_device *source_port = NULL;
 	struct net *net = sock_net(skb->sk);
+	u16 nickname;
+	int err = -EFAULT;
 
-	u16 nickname = RBRIDGE_NICKNAME_NONE;
 	trill_genlseqnb = info->snd_seq;
 	trnlhdr = info->userhdr;
 	if (trnlhdr->ifindex)
 		source_port = __dev_get_by_index(net, trnlhdr->ifindex);
-	if (source_port) {
-		p = br_port_get_rcu(source_port);
-		if (p) {
-			br = p->br;
-			if (br && br->rbr)
-				nickname = ntohs(br->rbr->nick);
-		}
-	}
+
+	if (!source_port)
+		goto fail;
+
+	p = br_port_get_rcu(source_port);
+	if (!p || !(p->br))
+		goto fail;
+
+	if (p->br->rbr)
+		nickname = ntohs(p->br->rbr->nick);
+	else
+		nickname = RBRIDGE_NICKNAME_NONE;
+
 	msg = nlmsg_new(NLMSG_DEFAULT_SIZE, GFP_KERNEL);
 	trnlhdr = genlmsg_put(msg, info->snd_portid, trill_genlseqnb,
-			      &trill_genl_family,
-			      sizeof(*trnlhdr),
+			      &trill_genl_family, sizeof(*trnlhdr),
 			      TRILL_CMD_GET_RBRIDGE);
 	trnlhdr->ifindex = KERNL_RESPONSE_INTERFACE;
 	nla_put_u16(msg, TRILL_ATTR_U16, nickname);
 	genlmsg_end(msg, trnlhdr);
 
-	return genlmsg_reply(msg, info);
+	err = genlmsg_reply(msg, info);
+	if (err)
+		goto fail;
+
+	return 0;
+
+fail:
+	printk(KERN_WARNING "trill_cmd_get_rbridge FAILED\n");
+	return err;
 }
 
 /* trill_cmd_set_rbridge when started daemon set chosen nickname after
@@ -250,39 +265,46 @@ static int trill_cmd_get_rbridge(struct sk_buff *skb, struct genl_info *info)
  */
 static int trill_cmd_set_rbridge(struct sk_buff *skb, struct genl_info *info)
 {
-	u16 nickname;
 	struct trill_nl_header *trnlhdr;
 	struct net_device *source_port = NULL;
 	struct net_bridge_port *p = NULL;
 	struct net_bridge *br = NULL;
 	struct net *net = sock_net(skb->sk);
+	u16 nickname = nla_get_u16(info->attrs[TRILL_ATTR_U16]);
 
 	trill_genlseqnb = info->snd_seq;
 	trnlhdr = info->userhdr;
 	if (trnlhdr->ifindex)
 		source_port = __dev_get_by_index(net, trnlhdr->ifindex);
-	nickname = nla_get_u16(info->attrs[TRILL_ATTR_U16]);
-	if (source_port) {
-		p = br_port_get_rcu(source_port);
-		if (p) {
-			br = p->br;
-			if (br) {
-				/* if daemon has started and bridge TRILL capability
-				 * is not enabled then start it
-				 */
-				if (br->trill_enabled == BR_NO_TRILL)
-					br_trill_set_enabled(br, 1);
-				if (br->rbr) {
-					spin_lock_bh(&br->lock);
-					br->rbr->nick = htons(nickname);
-					spin_unlock_bh(&br->lock);
-					return 0;
-				}
-			}
-		}
-	}
-	printk(KERN_WARNING "trill_cmd_set_bridge FAILED\n");
 
+	if (!source_port)
+		goto fail;
+
+	p = br_port_get_rcu(source_port);
+	if (!p || !(p->br))
+		goto fail;
+
+	br = p->br;
+	if (!br)
+		goto fail;
+
+	/* if daemon has started and bridge TRILL capability
+	 * is not enabled then start it
+	 */
+	if (br->trill_enabled == BR_NO_TRILL)
+		br_trill_set_enabled(br, 1);
+
+	if (!(br->rbr))
+		goto fail;
+
+	spin_lock_bh(&br->lock);
+	br->rbr->nick = htons(nickname);
+	spin_unlock_bh(&br->lock);
+
+	return 0;
+
+fail:
+	printk(KERN_WARNING "trill_cmd_set_bridge FAILED\n");
 	return -EFAULT;
 }
 
