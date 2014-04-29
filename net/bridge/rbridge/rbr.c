@@ -768,7 +768,7 @@ rx_handler_result_t rbr_handle_frame(struct sk_buff **pskb)
 						* to remove it nickname
 						*/
 						br_fdb_update(br,
-							      p, eth_hdr(skb)->h_source);
+							      p, eth_hdr(skb)->h_source, vid);
 						# ifdef CONFIG_TRILL_VNT
 						if (get_port_vni_id(p) !=
 							get_port_vni_id(dst->dst)) {
