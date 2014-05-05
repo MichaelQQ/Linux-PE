@@ -6507,9 +6507,14 @@ static unsigned int igb_get_headlen(unsigned char *data,
 			return max_len;
 		trill_op_len = trill_get_optslen(hdr.trill->th_flags);
 		hdr.network += sizeof(hdr.trill);
-		if (trill_op_len)
+		if (trill_op_len) {
+			if ((hdr.network - data) > (max_len - trill_op_len))
+				return max_len;
 			hdr.network += trill_op_len;
+		}
 		/* inner header */
+		if ((hdr.network - data) > (max_len - ETH_HLEN))
+			return max_len;
 		protocol = hdr.eth2->h_proto;
 		hdr.network += ETH_HLEN;
 
