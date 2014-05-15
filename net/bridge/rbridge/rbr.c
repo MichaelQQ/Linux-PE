@@ -295,8 +295,8 @@ static bool rbr_encaps(struct sk_buff *skb, uint16_t ingressnick,
 	if (vni)
 		trhsize += sizeof(struct trill_opt) + sizeof(struct trill_vnt_extension);
 	#endif
+	skb_push(skb, ETH_HLEN);
 	if (!skb->encapsulation) {
-		skb_push(skb, ETH_HLEN);
 		skb_reset_inner_headers(skb);
 		skb->encapsulation = 1;
 	}
