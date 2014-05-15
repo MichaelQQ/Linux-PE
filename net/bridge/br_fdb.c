@@ -930,19 +930,4 @@ int is_local_guest_port(struct net_bridge_port *p, unsigned char *dest, u16 vid)
 
 	 return 0;
 }
-
-/* is_local_host_port: check if given mac address is a local non trill flagged port
- * used to filter traffic destined to the Host
- */
-int is_local_host_port(struct net_bridge_port *p, unsigned char *dest, u16 vid)
-{
-	struct hlist_head *head = &p->br->hash[br_mac_hash(dest, vid)];
-	struct net_bridge_fdb_entry *fdb;
-
-	fdb = fdb_find(head, dest, vid);
-	if (likely(fdb))
-		return fdb->is_local;
-
-	return 0;
-}
 #endif

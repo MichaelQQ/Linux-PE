@@ -450,7 +450,6 @@ void br_fdb_update_nick(struct net_bridge *br,
 			uint16_t nick);
 uint16_t get_nick_from_mac(struct net_bridge_port *p, unsigned char* dest, u16 vid);
 int is_local_guest_port(struct net_bridge_port *p, unsigned char* dest, u16 vid);
-int is_local_host_port(struct net_bridge_port *p, unsigned char* dest, u16 vid);
 #endif
 
 /* br_forward.c */
