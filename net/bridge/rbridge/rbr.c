@@ -57,6 +57,9 @@ static void rbr_del_all(struct rbr *rbr)
 
 static void br_trill_start(struct net_bridge *br)
 {
+	/* Disable STP if it is already enabled */
+	if (br->stp_enabled != BR_NO_STP)
+	  br_stp_stop(br);
 	br->rbr = add_rbr(br);
 	if (br->rbr) {
 		spin_lock_bh(&br->lock);

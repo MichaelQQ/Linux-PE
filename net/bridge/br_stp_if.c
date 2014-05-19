@@ -151,7 +151,7 @@ static void br_stp_start(struct net_bridge *br)
 	spin_unlock_bh(&br->lock);
 }
 
-static void br_stp_stop(struct net_bridge *br)
+void br_stp_stop(struct net_bridge *br)
 {
 	int r;
 	char *argv[] = { BR_STP_PROG, br->dev->name, "stop", NULL };
@@ -173,7 +173,12 @@ static void br_stp_stop(struct net_bridge *br)
 void br_stp_set_enabled(struct net_bridge *br, unsigned long val)
 {
 	ASSERT_RTNL();
-
+#ifdef CONFIG_TRILL
+	if (br->trill_enabled == BR_TRILL ) {
+	  br_info(br, "STP and TRILL are incompatible\n");
+	  return;
+	}
+#endif
 	if (val) {
 		if (br->stp_enabled == BR_NO_STP)
 			br_stp_start(br);
