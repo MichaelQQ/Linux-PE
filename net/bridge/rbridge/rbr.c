@@ -574,6 +574,19 @@ static void rbr_recv(struct sk_buff *skb, u16 vid)
 		pr_warn_ratelimited("rbr_recv:sk_buff len is less then minimal len\n");
 		goto recv_drop;
 	}
+       /*
+	* seems to be a valid TRILL frame,
+	* check if TRILL header can be pulled
+	* before proceeding
+	*/
+	 if (unlikely(!pskb_may_pull(skb, trhsize)))
+	   goto recv_drop;
+	/*
+	* WARNING SKB structure may be changed by pskb_may_pull
+	* reassign trh pointer before continuing any further
+	*/
+	trh = (struct trill_hdr *)skb->data;
+
 	if (!skb->encapsulation) {
 		skb_pull(skb, trhsize + ETH_HLEN);
 		skb_reset_inner_headers(skb);
