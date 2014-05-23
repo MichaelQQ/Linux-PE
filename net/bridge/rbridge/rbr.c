@@ -201,7 +201,7 @@ static int rbr_multidest_fwd(struct net_bridge_port *p,
 	bool nicksaved = false;
 	unsigned int i;
 
-	if (!p || p->state == BR_STATE_DISABLED) {
+	if (!p) {
 		pr_warn_ratelimited("rbr_multidest_fwd:port error\n");
 		goto multidest_fwd_fail;
 	}
@@ -367,7 +367,7 @@ static void rbr_encaps_prepare(struct sk_buff *skb, uint16_t egressnick,
 	uint32_t vni_id;
 #endif
 	p = br_port_get_rcu(skb->dev);
-	if (!p || p->state == BR_STATE_DISABLED) {
+	if (!p) {
 		pr_warn_ratelimited("rbr_encaps_prepare: port error\n");
 		goto encaps_drop;
 	}
@@ -555,7 +555,7 @@ static void rbr_recv(struct sk_buff *skb, u16 vid)
 	struct rbr_node *adj = NULL;
 
 	p = br_port_get_rcu(skb->dev);
-	if (!p || p->state == BR_STATE_DISABLED) {
+	if (!p) {
 		pr_warn_ratelimited("rbr_recv: port error\n");
 		goto recv_drop;
 	} else {
@@ -746,7 +746,7 @@ rx_handler_result_t rbr_handle_frame(struct sk_buff **pskb)
 	u16 vid = 0;
 
 	p = br_port_get_rcu(skb->dev);
-	if (!p || p->state == BR_STATE_DISABLED)
+	if (!p)
 		goto drop;
 	br = p->br;
 
