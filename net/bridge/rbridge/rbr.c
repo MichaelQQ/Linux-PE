@@ -36,9 +36,9 @@ static void rbr_del_node(struct rbr *rbr, uint16_t nickname)
 {
 	struct rbr_node *rbr_node;
 
-	if (VALID_NICK(nickname)) {
+	if (likely(VALID_NICK(nickname))) {
 		rbr_node = rbr->rbr_nodes[nickname];
-		if (rbr_node != NULL) {
+		if (likely(rbr_node != NULL)) {
 			rcu_assign_pointer(rbr->rbr_nodes[nickname], NULL);
 			rbr_node_put(rbr_node);
 		}
@@ -50,7 +50,7 @@ static void rbr_del_all(struct rbr *rbr)
 	unsigned int i;
 
 	for (i = RBRIDGE_NICKNAME_MIN; i < RBRIDGE_NICKNAME_MAX; i++) {
-		if (rbr->rbr_nodes[i] != NULL)
+		if (likely(rbr->rbr_nodes[i] != NULL))
 			rbr_del_node(rbr, i);
 	}
 }
@@ -80,7 +80,7 @@ static void br_trill_stop(struct net_bridge *br)
 	spin_unlock_bh(&br->lock);
 	old = br->rbr;
 	br->rbr = NULL;
-	if (old) {
+	if (likely(old)) {
 		spin_lock_bh(&br->lock);
 		rbr_del_all(old);
 		kfree(old);
@@ -90,7 +90,7 @@ static void br_trill_stop(struct net_bridge *br)
 
 int set_treeroot(struct rbr *rbr, uint16_t treeroot)
 {
-	if (!VALID_NICK(treeroot)) {
+	if (unlikely(!VALID_NICK(treeroot))) {
 		pr_warn_ratelimited("rbr_set_treeroot: given tree root not valid\n");
 		goto set_tree_root_fail;
 	}
@@ -110,7 +110,7 @@ struct rbr_node *rbr_find_node(struct rbr *rbr, __u16 nickname)
 {
 	struct rbr_node *rbr_node;
 
-	if (!VALID_NICK(nickname))
+	if (unlikely(!VALID_NICK(nickname)))
 		return NULL;
 
 	rbr_node = rcu_dereference(rbr->rbr_nodes[nickname]);
@@ -141,7 +141,7 @@ static void rbr_fwd_finish(struct sk_buff *skb, u16 vid)
 	outerethhdr = eth_hdr(skb);
 	br = netdev_priv(dev);
 	dst = __br_fdb_get(br, dest, vid);
-	if (dst) {
+	if (likely(dst)) {
 		dst->used = jiffies;
 		memcpy(outerethhdr->h_source, dst->dst->dev->dev_addr,
 		       dst->dst->dev->addr_len);
@@ -159,7 +159,7 @@ static void rbr_fwd(struct net_bridge_port *p, struct sk_buff *skb,
 	struct ethhdr *outerethhdr;
 
 	adj = rbr_find_node(p->br->rbr, adj_nick);
-	if (adj == NULL) {
+	if (unlikely(adj == NULL)) {
 		pr_warn_ratelimited("rbr_fwd: unable to find adjacent RBridge\n");
 		goto dest_fwd_fail;
 	}
@@ -181,7 +181,7 @@ static void rbr_fwd(struct net_bridge_port *p, struct sk_buff *skb,
 	return;
 
 dest_fwd_fail:
-	if (p && p->br)
+	if (likely(p && p->br))
 		p->br->dev->stats.tx_dropped++;
 	kfree_skb(skb);
 	return;
@@ -201,14 +201,14 @@ static int rbr_multidest_fwd(struct net_bridge_port *p,
 	bool nicksaved = false;
 	unsigned int i;
 
-	if (!p) {
+	if (unlikely(!p)) {
 		pr_warn_ratelimited("rbr_multidest_fwd:port error\n");
 		goto multidest_fwd_fail;
 	}
 
 	rbr = p->br->rbr;
-	if (rbr == NULL)
-		return -1;
+	if (unlikely(rbr == NULL))
+		goto multidest_fwd_fail;
 
 	/* Lookup the egress nick info, this is the DT root */
 	if ((dest = rbr_find_node(rbr, egressnick)) == NULL) {
@@ -245,7 +245,7 @@ static int rbr_multidest_fwd(struct net_bridge_port *p,
 		/* FIXME using copy instead of clone as
 		 * we are going to modify dest adress
 		 */
-		if ((skb2 = skb_copy(skb, GFP_ATOMIC)) == NULL) {
+		if (unlikely((skb2 = skb_copy(skb, GFP_ATOMIC)) == NULL)) {
 			p->br->dev->stats.tx_dropped++;
 			pr_warn_ratelimited("rbr_multidest_fwd:skb_copy failed\n");
 			goto multidest_fwd_fail;
@@ -268,7 +268,7 @@ static int rbr_multidest_fwd(struct net_bridge_port *p,
 	return 0;
 
 multidest_fwd_fail:
-	if (p && p->br)
+	if (likely(p && p->br))
 		p->br->dev->stats.tx_dropped++;
 	kfree_skb(skb);
 	return -1;
@@ -293,9 +293,9 @@ static bool rbr_encaps(struct sk_buff *skb, uint16_t ingressnick,
 	trhsize = sizeof(*trh);
 	#ifdef CONFIG_TRILL_VNT
 	p = br_port_get_rcu(skb->dev);
-	if (p)
+	if (likely(p))
 		vni = get_port_vni_id(p);
-	if (vni)
+	if (likely(vni))
 		trhsize += sizeof(struct trill_opt) + sizeof(struct trill_vnt_extension);
 	#endif
 	skb_push(skb, ETH_HLEN);
@@ -312,12 +312,12 @@ static bool rbr_encaps(struct sk_buff *skb, uint16_t ingressnick,
 		skb->vlan_proto = 0;
 		skb->vlan_tci = 0;
 	}
-	if (skb_cow_head(skb, trhsize + ETH_HLEN)) {
+	if (unlikely(skb_cow_head(skb, trhsize + ETH_HLEN))) {
 		printk(KERN_ERR "rbr_encaps: cow_head failed\n");
 		return 1;
 	}
 	#ifdef CONFIG_TRILL_VNT
-	if (vni) {
+	if (likely(vni)) {
 		vnt = (struct trill_vnt_extension *) skb_push(skb, sizeof(*vnt));
 		trill_opt = (struct trill_opt *) skb_push(skb, sizeof(*trill_opt));
 		/* opt_flags to be defined later */
@@ -367,24 +367,25 @@ static void rbr_encaps_prepare(struct sk_buff *skb, uint16_t egressnick,
 	uint32_t vni_id;
 #endif
 	p = br_port_get_rcu(skb->dev);
-	if (!p) {
+	if (unlikely(!p)) {
 		pr_warn_ratelimited("rbr_encaps_prepare: port error\n");
 		goto encaps_drop;
 	}
 	rbr = p->br->rbr;
 
-	if (egressnick != RBRIDGE_NICKNAME_NONE && !VALID_NICK(egressnick)) {
+	if (unlikely(egressnick != RBRIDGE_NICKNAME_NONE
+         && !VALID_NICK(egressnick))) {
 		pr_warn_ratelimited("rbr_encaps_prepare: invalid destinaton nickname\n");
 		goto encaps_drop;
 	}
 	local_nick = rbr->nick;
-	if (!VALID_NICK(local_nick)) {
+	if (unlikely(!VALID_NICK(local_nick))) {
 		pr_warn_ratelimited("rbr_encaps_prepare: invalid local nickname\n");
 		goto encaps_drop;
 	}
 	if (egressnick == RBRIDGE_NICKNAME_NONE) {
 		/* Daemon has not yet sent the local nickname */
-		if ((self = rbr_find_node(rbr, local_nick)) == NULL) {
+		if (unlikely((self = rbr_find_node(rbr, local_nick)) == NULL)) {
 			pr_warn_ratelimited("rbr_encaps_prepare: waiting for nickname\n");
 			goto encaps_drop;
 		}
@@ -393,11 +394,11 @@ static void rbr_encaps_prepare(struct sk_buff *skb, uint16_t egressnick,
 		else
 			dtrNick = rbr->treeroot;
 		rbr_node_put(self);
-		if (!VALID_NICK(dtrNick)) {
+		if (unlikely(!VALID_NICK(dtrNick))) {
 			pr_warn_ratelimited("rbr_encaps_prepare: dtrNick is unvalid\n");
 			goto encaps_drop;
 		}
-		if ((skb2 = skb_clone(skb, GFP_ATOMIC)) == NULL) {
+		if (unlikely((skb2 = skb_clone(skb, GFP_ATOMIC)) == NULL)) {
 			p->br->dev->stats.tx_dropped++;
 			pr_warn_ratelimited("rbr_encaps_prepare: skb_clone failed\n");
 			goto encaps_drop;
@@ -411,11 +412,11 @@ static void rbr_encaps_prepare(struct sk_buff *skb, uint16_t egressnick,
 		else
 #endif
 		br_endstation_deliver(p->br, skb2);
-		if (rbr_encaps(skb, local_nick, dtrNick, 1))
+		if (unlikely(rbr_encaps(skb, local_nick, dtrNick, 1)))
 			goto encaps_drop;
 		rbr_multidest_fwd(p, skb, dtrNick, local_nick, NULL, vid, true);
 	} else {
-		if (rbr_encaps(skb, local_nick, egressnick, 0))
+		if (unlikely(rbr_encaps(skb, local_nick, egressnick, 0)))
 			goto encaps_drop;
 		rbr_fwd(p, skb, egressnick, vid);
 	}
@@ -423,7 +424,7 @@ static void rbr_encaps_prepare(struct sk_buff *skb, uint16_t egressnick,
 	return;
 
 encaps_drop:
-	if (p && p->br)
+	if (likely(p && p->br))
 		p->br->dev->stats.tx_dropped++;
 	kfree_skb(skb);
 	return;
@@ -443,7 +444,7 @@ static void rbr_decap_finish(struct sk_buff *skb, u16 vid)
 
 	br = netdev_priv(dev);
 	dst = __br_fdb_get(br, dest, vid);
-	if (dst) {
+	if (likely(dst)) {
 	#ifdef CONFIG_TRILL_VNT
 		if (get_port_vni_id(dst->dst) != vni)
 			goto rbr_decap_finish_drop;
@@ -452,9 +453,9 @@ static void rbr_decap_finish(struct sk_buff *skb, u16 vid)
 			br_deliver(dst->dst, skb);
 	} else {
 		#ifdef CONFIG_TRILL_VNT
-		if (vni) {
+		if (likely(vni)) {
 			struct vni *VNI;
-			if ((VNI = find_vni(br, vni)) && VNI)
+			if (likely((VNI = find_vni(br, vni)) && VNI))
 				vni_flood_deliver(VNI, skb, FREE_SKB);
 			else
 				goto rbr_decap_finish_drop;
@@ -470,7 +471,7 @@ static void rbr_decap_finish(struct sk_buff *skb, u16 vid)
 #ifdef CONFIG_TRILL_VNT
 rbr_decap_finish_drop:
 #endif
-	if (br)
+	if (likely(br))
 		br->dev->stats.rx_dropped++;
 	kfree_skb(skb);
 }
@@ -485,7 +486,7 @@ static void rbr_decaps(struct net_bridge_port *p,
 	uint32_t vni = 0;
 #endif
 
-	if (p == NULL)
+	if (unlikely(p == NULL))
 		goto rbr_decaps_drop;
 	trh = (struct trill_hdr *)skb->data;
 	if (trhsize >= sizeof(*trh))
@@ -494,7 +495,7 @@ static void rbr_decaps(struct net_bridge_port *p,
 		goto rbr_decaps_drop;
 	trhsize -= sizeof(*trh);
 #ifdef CONFIG_TRILL_VNT
-	if (trill_get_optslen(ntohs(trh->th_flags))) {
+	if (likely(trill_get_optslen(ntohs(trh->th_flags)))) {
 		struct trill_vnt_extension *vnt;
 		if (trhsize > sizeof(struct trill_opt))
 			skb_pull(skb, sizeof(struct trill_opt));
@@ -502,7 +503,8 @@ static void rbr_decaps(struct net_bridge_port *p,
 			goto rbr_decaps_drop;
 		trhsize -= sizeof(struct trill_opt);
 		vnt = (struct trill_vnt_extension *) skb->data;
-		if (trill_extension_get_type(vnt->flags != VNT_EXTENSION_TYPE)) {
+		 if (unlikely(trill_extension_get_type(vnt->flags !=
+		   VNT_EXTENSION_TYPE))) {
 			kfree_skb(skb);
 			return;
 		}
@@ -512,7 +514,7 @@ static void rbr_decaps(struct net_bridge_port *p,
 		else
 			goto rbr_decaps_drop;
 		trhsize -= sizeof(*vnt);
-		if (trhsize > 0) {
+		if (unlikely(trhsize > 0)) {
 			pr_warn_ratelimited("unknown option encountred dropping frame for safty\n");
 			goto rbr_decaps_drop;
 		}
@@ -535,7 +537,7 @@ static void rbr_decaps(struct net_bridge_port *p,
 #endif
 	return;
 rbr_decaps_drop:
-	if (p && p->br)
+	if (likely(p && p->br))
 		p->br->dev->stats.rx_dropped++;
 	kfree_skb(skb);
 }
@@ -555,7 +557,7 @@ static void rbr_recv(struct sk_buff *skb, u16 vid)
 	struct rbr_node *adj = NULL;
 
 	p = br_port_get_rcu(skb->dev);
-	if (!p) {
+	if (unlikely(!p)) {
 		pr_warn_ratelimited("rbr_recv: port error\n");
 		goto recv_drop;
 	} else {
@@ -573,7 +575,7 @@ static void rbr_recv(struct sk_buff *skb, u16 vid)
 	trh = (struct trill_hdr *)skb->data;
 	trill_flags = ntohs(trh->th_flags);
 	trhsize = sizeof(*trh) + trill_get_optslen(trill_flags);
-	if (skb->len < trhsize + ETH_HLEN) {
+	if (unlikely(skb->len < trhsize + ETH_HLEN)) {
 		pr_warn_ratelimited("rbr_recv:sk_buff len is less then minimal len\n");
 		goto recv_drop;
 	}
@@ -596,24 +598,24 @@ static void rbr_recv(struct sk_buff *skb, u16 vid)
 		skb->encapsulation = 1;
 		skb_push(skb, trhsize + ETH_HLEN);
 	}
-	if (!VALID_NICK(trh->th_ingressnick) ||
-	    !VALID_NICK(trh->th_egressnick)) {
+	if (unlikely(!VALID_NICK(trh->th_ingressnick) ||
+           !VALID_NICK(trh->th_egressnick))) {
 		pr_warn_ratelimited("rbr_recv: invalid nickname\n");
 		goto recv_drop;
 	}
-	if (trill_get_version(trill_flags) != TRILL_PROTOCOL_VERS) {
+	if (unlikely(trill_get_version(trill_flags) != TRILL_PROTOCOL_VERS)) {
 		pr_warn_ratelimited("rbr_recv: not the same trill version\n");
 		goto recv_drop;
 	}
 	local_nick = rbr->nick;
 	dtrNick = rbr->treeroot;
-	if (trh->th_ingressnick == local_nick) {
+	if (unlikely(trh->th_ingressnick == local_nick)) {
 		pr_warn_ratelimited("rbr_recv:looping back frame check your config\n");
 		goto recv_drop;
 	}
 
 #ifndef CONFIG_TRILL_VNT
-	if (trill_get_optslen(trill_flags)) {
+	if (unlikely(trill_get_optslen(trill_flags))) {
 		pr_warn_ratelimited("Found unknown TRILL header extension\n");
 		goto recv_drop;
 	}
@@ -627,7 +629,7 @@ static void rbr_recv(struct sk_buff *skb, u16 vid)
 		}
 		if (trh->th_egressnick == local_nick) {
 			rbr_decaps(p, skb, trhsize, vid);
-		} else if (trill_get_hopcount(trill_flags)) {
+		} else if (likely(trill_get_hopcount(trill_flags))) {
 			br_fdb_update(p->br, p, srcaddr, vid);
 			rbr_fwd(p, skb, trh->th_egressnick, vid);
 		} else {
@@ -643,7 +645,7 @@ static void rbr_recv(struct sk_buff *skb, u16 vid)
 	 * indicated in the frame header
 	 */
 	dest = rbr_find_node(rbr, trh->th_egressnick);
-	if (dest == NULL) {
+	if (unlikely(dest == NULL)) {
 		pr_warn_ratelimited("rbr_recv: mulicast  with unknown destination\n");
 		goto recv_drop;
 	}
@@ -659,7 +661,7 @@ static void rbr_recv(struct sk_buff *skb, u16 vid)
 		rbr_node_put(adj);
 	}
 
-	if (idx >= dest->rbr_ni->adjcount) {
+	if (unlikely(idx >= dest->rbr_ni->adjcount)) {
 		pr_warn_ratelimited("rbr_recv: multicast unknow mac source\n");
 		rbr_node_put(dest);
 		goto recv_drop;
@@ -671,7 +673,7 @@ static void rbr_recv(struct sk_buff *skb, u16 vid)
 	 * in the egress nick
 	 */
 	source_node = rbr_find_node(rbr, trh->th_ingressnick);
-	if (source_node == NULL) {
+	if (unlikely(source_node == NULL)) {
 		pr_warn_ratelimited("rbr_recv: reverse path forwarding check failed\n");
 		rbr_node_put(dest);
 		goto recv_drop;
@@ -696,7 +698,7 @@ static void rbr_recv(struct sk_buff *skb, u16 vid)
 	}
 
 	/* Check hop count before doing any forwarding */
-	if (trill_get_hopcount(trill_flags) == 0) {
+	if (unlikely(trill_get_hopcount(trill_flags) == 0)) {
 		pr_warn_ratelimited("rbr_recv: multicast hop count limit reached\n");
 		rbr_node_put(dest);
 		goto recv_drop;
@@ -706,7 +708,7 @@ static void rbr_recv(struct sk_buff *skb, u16 vid)
 	rbr_node_put(dest);
 
         /* skb2 will be multi forwarded and skb will be locally decaps */
-	if ((skb2 = skb_clone(skb, GFP_ATOMIC)) == NULL) {
+	if (unlikely((skb2 = skb_clone(skb, GFP_ATOMIC)) == NULL)) {
 		p->br->dev->stats.tx_dropped++;
 		pr_warn_ratelimited("rbr_recv: multicast skb_clone failed\n");
 		goto recv_drop;
@@ -724,7 +726,7 @@ static void rbr_recv(struct sk_buff *skb, u16 vid)
 	return;
 
 recv_drop:
-	if (p && p->br)
+	if (likely(p && p->br))
 		p->br->dev->stats.rx_dropped++;
 	kfree_skb(skb);
 	return;
@@ -746,7 +748,7 @@ rx_handler_result_t rbr_handle_frame(struct sk_buff **pskb)
 	u16 vid = 0;
 
 	p = br_port_get_rcu(skb->dev);
-	if (!p)
+	if (unlikely(!p))
 		goto drop;
 	br = p->br;
 
@@ -759,7 +761,7 @@ rx_handler_result_t rbr_handle_frame(struct sk_buff **pskb)
 		skb = skb_share_check(skb, GFP_ATOMIC);
 		if (!skb)
 			return RX_HANDLER_CONSUMED;
-		if (!is_valid_ether_addr(eth_hdr(skb)->h_source)) {
+		if (unlikely(!is_valid_ether_addr(eth_hdr(skb)->h_source))) {
 			pr_warn_ratelimited("rbr_handle_frame:invalid src address\n");
 			br->dev->stats.rx_dropped++;
 			goto drop;
@@ -778,7 +780,7 @@ rx_handler_result_t rbr_handle_frame(struct sk_buff **pskb)
 			if (is_local_guest_port(p, eth_hdr(skb)->h_dest, vid)) {
 				struct net_bridge_fdb_entry *dst;
 				dst = __br_fdb_get(br, eth_hdr(skb)->h_dest, vid);
-				if (dst) {
+				if (likely (dst)) {
 					if (dst->dst->trill_flag != TRILL_FLAG_DISABLE) {
 						/* After migration distent vm to local node we need
 						* to remove it nickname
@@ -786,8 +788,8 @@ rx_handler_result_t rbr_handle_frame(struct sk_buff **pskb)
 						br_fdb_update(br,
 							      p, eth_hdr(skb)->h_source, vid);
 						# ifdef CONFIG_TRILL_VNT
-						if (get_port_vni_id(p) !=
-							get_port_vni_id(dst->dst)) {
+						if (unlikely(get_port_vni_id(p) !=
+                                                       get_port_vni_id(dst->dst))) {
 							br->dev->stats.rx_dropped++;
 							goto drop;
 						}

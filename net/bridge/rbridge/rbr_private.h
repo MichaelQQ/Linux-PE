@@ -72,7 +72,7 @@ struct rbr {
 
 static inline void rbr_node_free(struct rbr_node *rbr_node)
 {
-	if (rbr_node != NULL) {
+	if (likely(rbr_node != NULL)) {
 		if (rbr_node->rbr_ni != NULL)
 			kfree(rbr_node->rbr_ni);
 		kfree(rbr_node);
@@ -81,14 +81,14 @@ static inline void rbr_node_free(struct rbr_node *rbr_node)
 
 static inline void rbr_node_get(struct rbr_node *rbr_node)
 {
-	if (rbr_node != NULL)
+	if (likely(rbr_node != NULL))
 		atomic_inc(&rbr_node->refs);
 }
 
 static inline void rbr_node_put (struct rbr_node *rbr_node)
 {
 	if (rbr_node) {
-		if (likely(atomic_dec_and_test(&rbr_node->refs)))
+		if (unlikely(atomic_dec_and_test(&rbr_node->refs)))
 			rbr_node_free(rbr_node);
 	}
 }

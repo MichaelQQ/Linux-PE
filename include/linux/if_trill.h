@@ -73,7 +73,7 @@ static inline void trillhdr_dec_hopcount(struct trill_hdr *trh)
 {
 	u8 *flags = (u8 *) &(trh->th_flags);
 
-	if (flags[1] & 0x3F)
+	if (likely(flags[1] & 0x3F))
 		flags[1] -= 1;
 }
 
