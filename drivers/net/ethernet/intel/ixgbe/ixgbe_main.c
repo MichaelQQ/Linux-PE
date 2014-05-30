@@ -1434,7 +1434,6 @@ static unsigned int ixgbe_get_headlen(unsigned char *data,
 		struct vlan_hdr *vlan;
 #ifdef CONFIG_TRILL
 		struct trill_hdr *trill;
-		struct trill_opt *trill_opt;
 		struct ethhdr *eth2;
 		struct vlan_hdr *vlan2;
 #endif
