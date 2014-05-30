@@ -584,8 +584,8 @@ static void rbr_recv(struct sk_buff *skb, u16 vid)
 	* check if TRILL header can be pulled
 	* before proceeding
 	*/
-	 if (unlikely(!pskb_may_pull(skb, trhsize)))
-	   goto recv_drop;
+	if (unlikely(!pskb_may_pull(skb, trhsize)))
+		goto recv_drop;
 	/*
 	* WARNING SKB structure may be changed by pskb_may_pull
 	* reassign trh pointer before continuing any further
