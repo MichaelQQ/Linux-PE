@@ -1471,10 +1471,10 @@ static unsigned int ixgbe_get_headlen(unsigned char *data,
 
 #ifdef CONFIG_TRILL
 	if (protocol == __constant_htons(ETH_P_TRILL)) {
-		if ((hdr.network - data) > (max_len - sizeof(hdr.trill)))
+		if ((hdr.network - data) > (max_len - sizeof(struct trill_hdr)))
 			return max_len;
 		trill_op_len = trill_get_optslen(hdr.trill->th_flags);
-		hdr.network += sizeof(hdr.trill);
+		hdr.network += sizeof(struct trill_hdr);
 		if (trill_op_len)
 			hdr.network += trill_op_len;
 		/* inner header */
