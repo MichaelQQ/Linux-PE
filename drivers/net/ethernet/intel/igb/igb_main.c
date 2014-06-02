@@ -6466,8 +6466,6 @@ static unsigned int igb_get_headlen(unsigned char *data,
 		struct vlan_hdr *vlan;
 #ifdef CONFIG_TRILL
 		struct trill_hdr *trill;
-		struct ethhdr *eth2;
-		struct vlan_hdr *vlan2;
 #endif
 		/* l3 headers */
 		struct iphdr *ipv4;
@@ -6514,14 +6512,14 @@ static unsigned int igb_get_headlen(unsigned char *data,
 		/* inner header */
 		if ((hdr.network - data) > (max_len - ETH_HLEN))
 			return max_len;
-		protocol = hdr.eth2->h_proto;
+		protocol = hdr.eth->h_proto;
 		hdr.network += ETH_HLEN;
 
 		/* handle any vlan tag if present */
 		if (protocol == __constant_htons(ETH_P_8021Q)) {
 			if ((hdr.network - data) > (max_len - VLAN_HLEN))
 				return max_len;
-			protocol = hdr.vlan2->h_vlan_encapsulated_proto;
+			protocol = hdr.vlan->h_vlan_encapsulated_proto;
 			hdr.network += VLAN_HLEN;
 		}
 	}
