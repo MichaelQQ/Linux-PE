@@ -6502,7 +6502,7 @@ static unsigned int igb_get_headlen(unsigned char *data,
 	if (protocol == __constant_htons(ETH_P_TRILL)) {
 		if ((hdr.network - data) > (max_len - sizeof(struct trill_hdr)))
 			return max_len;
-		trill_op_len = trill_get_optslen(hdr.trill->th_flags);
+		trill_op_len = trill_get_optslen(ntohs(hdr.trill->th_flags));
 		hdr.network += sizeof(struct trill_hdr);
 		if (trill_op_len) {
 			if ((hdr.network - data) > (max_len - trill_op_len))
