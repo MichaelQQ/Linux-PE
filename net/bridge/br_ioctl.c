@@ -20,6 +20,9 @@
 #include <net/net_namespace.h>
 #include <asm/uaccess.h>
 #include "br_private.h"
+#ifdef CONFIG_TRILL_VNT
+#define VS_SEPARATOR 0xF0F0F0F0
+#endif
 
 /* called with RTNL */
 static int get_bridge_ifindices(struct net *net, int *indices, int num)
@@ -81,6 +84,28 @@ static int get_fdb_entries(struct net_bridge *br, void __user *userbuf,
 
 	return num;
 }
+
+#ifdef CONFIG_TRILL_VNT
+/* called with RTNL */
+static int vni_get_port_ifindices(struct vni *vni, int *ifindices, int num)
+{
+        struct net_bridge_port *p;
+        int i=0;
+        if(vni){
+                if (&vni->port_list){
+                        list_for_each_entry(p, &vni->port_list, list2) {
+                                if (p){
+                                        if (i < num){
+                                                ifindices[i] = p->dev->ifindex;
+                                                i++;
+                                        }
+                                }
+                        }
+                }
+        }
+        return i;
+}
+#endif
 
 /* called with RTNL */
 static int add_del_if(struct net_bridge *br, int ifindex, int isadd)
@@ -309,6 +334,46 @@ static int old_dev_ioctl(struct net_device *dev, struct ifreq *rq, int cmd)
 		rcu_read_unlock();
 		return ret;
 	}
+        case BRCTL_GET_VS_PORT_LIST:
+        {
+                int num, ret, result;
+                uint32_t *indices, *indices_start ;
+                struct vni *vni;
+                ret = 0;
+                result = 0;
+                if (!capable(CAP_NET_ADMIN))
+                        return -EPERM;
+                num = args[2];
+                if (num < 0)
+                        return -EINVAL;
+                indices = kcalloc(num, sizeof(int), GFP_KERNEL);
+                if (indices == NULL)
+                        return -ENOMEM;
+                indices_start = indices;
+
+                list_for_each_entry(vni, &br->vni_list, list) {
+                                if (num > 0) {
+                                        indices[0] = vni->vni_id;
+                                        indices++;
+                                        num--; /* avoid memory overflow */
+                                        ret++;
+                                        result = vni_get_port_ifindices(vni, indices, num);
+                                        indices += result;
+                                        num -= result; /* avoid memory overflow */
+                                        ret += result;
+                                        indices[0] = VS_SEPARATOR;
+                                        indices += 1;
+                                        num -= 1; /* avoid memory overflow */
+                                        ret++;
+                                }
+                }
+
+                if (copy_to_user((void __user *)args[1], indices_start, num*sizeof(int)))
+                        ret =  -EFAULT;
+                indices = NULL;
+                kfree(indices_start);
+                return ret;
+        }
 #endif /* CONFIG_TRILL_VLANLABEL */
 
 	case BRCTL_GET_FDB_ENTRIES:
