@@ -1,23 +1,20 @@
---- mpls-linux-2.6.35.y/net/mpls/TODO	1970-01-01 08:00:00.000000000 +0800
-+++ linux-2.6.35-vpls/net/mpls/TODO	2015-04-20 20:24:43.759583630 +0800
-@@ -0,0 +1,20 @@
-+* PRIO1 20040207
-+  RCAS :Allocations in control plane use GPF_ATOMIC because we are working
-+  under a spinlock. This is suboptimal. We should define a better locking
-+  scheme (most MII/MOI modifications are performed in user context, after
-+  a IOCTL).  We could define a better locking scheme and revert to GPF_KERNEL
-+
-+* RCAS : Use event management for "external" MOI/MII references: Any
-+  protocol, device or module (e.g. tunnel) that holds a reference to a
-+  MII/MOI should register for removal notification, and cleanup and put
-+  back the reference if they receive a MOI or MII remove event.
-+
-+* RCAS: With the current implementation, &mpls_mii_lock and &mpls_moi_lock
-+  are used to synchronize access to the input and output trees.  I think
-+  that we may need to control access to individual MII/MOI objects too,
-+  don't we? : Reader gets a MII pointer locking and
-+  unlocking the reader lock that controls the tree, and holds the pointer. 
-+  Writer locks tree and updates an object. Race? Think bout the locking 
-+ scheme (per cpu, local irq dis?)
-+
-+* JLEU: bind instructions to name and make them a RTAs in the SHIM_INSTR RTA
+* PRIO1 20040207
+  RCAS :Allocations in control plane use GPF_ATOMIC because we are working
+  under a spinlock. This is suboptimal. We should define a better locking
+  scheme (most MII/MOI modifications are performed in user context, after
+  a IOCTL).  We could define a better locking scheme and revert to GPF_KERNEL
+
+* RCAS : Use event management for "external" MOI/MII references: Any
+  protocol, device or module (e.g. tunnel) that holds a reference to a
+  MII/MOI should register for removal notification, and cleanup and put
+  back the reference if they receive a MOI or MII remove event.
+
+* RCAS: With the current implementation, &mpls_mii_lock and &mpls_moi_lock
+  are used to synchronize access to the input and output trees.  I think
+  that we may need to control access to individual MII/MOI objects too,
+  don't we? : Reader gets a MII pointer locking and
+  unlocking the reader lock that controls the tree, and holds the pointer. 
+  Writer locks tree and updates an object. Race? Think bout the locking 
+ scheme (per cpu, local irq dis?)
+
+* JLEU: bind instructions to name and make them a RTAs in the SHIM_INSTR RTA
