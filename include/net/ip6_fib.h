@@ -20,6 +20,7 @@
 #include <net/flow.h>
 #include <net/netlink.h>
 #include <net/inetpeer.h>
+#include <net/shim.h>
 
 #ifdef CONFIG_IPV6_MULTIPLE_TABLES
 #define FIB6_TABLE_HASHSZ 256
@@ -51,6 +52,7 @@ struct fib6_config {
 	struct nlattr	*fc_mp;
 
 	struct nl_info	fc_nlinfo;
+	struct rtshim	fc_shim;
 };
 
 struct fib6_node {
@@ -125,6 +127,7 @@ struct rt6_info {
 	unsigned short			rt6i_nfheader_len;
 
 	u8				rt6i_protocol;
+	struct shim_blk			*rt6i_shim;
 };
 
 static inline struct inet_peer *rt6_peer_ptr(struct rt6_info *rt)
