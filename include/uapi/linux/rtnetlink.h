@@ -297,6 +297,7 @@ enum rtattr_type_t {
 	RTA_TABLE,
 	RTA_MARK,
 	RTA_MFC_STATS,
+	RTA_SHIM = 30,
 	__RTA_MAX
 };
 
