@@ -22,6 +22,7 @@
 #include <net/fib_rules.h>
 #include <net/inetpeer.h>
 #include <linux/percpu.h>
+#include <net/shim.h>
 
 struct fib_config {
 	u8			fc_dst_len;
@@ -44,6 +45,7 @@ struct fib_config {
 	u32			fc_flow;
 	u32			fc_nlflags;
 	struct nl_info		fc_nlinfo;
+	struct rtshim		fc_shim;
  };
 
 struct fib_info;
@@ -88,6 +90,7 @@ struct fib_nh {
 	struct rtable __rcu * __percpu *nh_pcpu_rth_output;
 	struct rtable __rcu	*nh_rth_input;
 	struct fnhe_hash_bucket	*nh_exceptions;
+	struct shim_blk		*nh_shim;
 };
 
 /*
@@ -178,6 +181,7 @@ __be32 fib_info_update_nh_saddr(struct net *net, struct fib_nh *nh);
 
 #define FIB_RES_PREFSRC(net, res)	((res).fi->fib_prefsrc ? : \
 					 FIB_RES_SADDR(net, res))
+#define FIB_RES_SHIM(res)		(FIB_RES_NH(res).nh_shim)
 
 struct fib_table {
 	struct hlist_node	tb_hlist;
