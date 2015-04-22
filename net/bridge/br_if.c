@@ -346,6 +346,8 @@ int br_add_if(struct net_bridge *br, struct net_device *dev)
 	struct net_bridge_port *p;
 	int err = 0;
 	bool changed_addr;
+	unsigned char   tunnel_addr[MAX_ADDR_LEN]; //add by here 
+	memcpy(tunnel_addr,dev->dev_addr,ETH_ALEN);//add by here
 
 	/* Don't allow bridging non-ethernet like devices */
 	if ((dev->flags & IFF_LOOPBACK) ||
@@ -432,7 +434,8 @@ int br_add_if(struct net_bridge *br, struct net_device *dev)
 
 	dev_set_mtu(br->dev, br_min_mtu(br));
 
-	if (br_fdb_insert(br, p, dev->dev_addr, 0))
+	//if (br_fdb_insert(br, p, dev->dev_addr, 0))
+	if (br_fdb_insert(br, p, tunnel_addr, 0))
 		netdev_err(dev, "failed insert local address bridge forwarding table\n");
 
 	kobject_uevent(&p->kobj, KOBJ_ADD);

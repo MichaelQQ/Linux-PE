@@ -176,6 +176,10 @@ static inline int ip_finish_output2(struct sk_buff *skb)
 		IP_UPD_PO_STATS(dev_net(dev), IPSTATS_MIB_OUTMCAST, skb->len);
 	} else if (rt->rt_type == RTN_BROADCAST)
 		IP_UPD_PO_STATS(dev_net(dev), IPSTATS_MIB_OUTBCAST, skb->len);
+        if (dst->child) {
+                skb_dst_set(skb, skb_dst_pop(skb));
+                return dst_output(skb);
+        }
 
 	/* Be paranoid, rather than too clever. */
 	if (unlikely(skb_headroom(skb) < hh_len && dev->header_ops)) {

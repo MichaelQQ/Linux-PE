@@ -107,6 +107,7 @@
 #include <linux/sysctl.h>
 #include <linux/kmemleak.h>
 #endif
+#include <net/shim.h>
 #include <net/secure_seq.h>
 
 #define RT_FL_TOS(oldflp4) \
@@ -1372,6 +1373,7 @@ static void rt_set_nexthop(struct rtable *rt, __be32 daddr,
 			   struct fib_info *fi, u16 type, u32 itag)
 {
 	bool cached = false;
+	struct shim_blk *sblk;
 
 	if (fi) {
 		struct fib_nh *nh = &FIB_RES_NH(*res);
@@ -1384,6 +1386,9 @@ static void rt_set_nexthop(struct rtable *rt, __be32 daddr,
 #ifdef CONFIG_IP_ROUTE_CLASSID
 		rt->dst.tclassid = nh->nh_tclassid;
 #endif
+		if ((sblk = FIB_RES_SHIM(*res)))
+                        sblk->shim->build(sblk, &rt->dst);
+
 		if (unlikely(fnhe))
 			cached = rt_bind_exception(rt, fnhe, daddr);
 		else if (!(rt->dst.flags & DST_NOCACHE))
@@ -2764,4 +2769,5 @@ void __init ip_static_sysctl_init(void)
 {
 	register_net_sysctl(&init_net, "net/ipv4/route", ipv4_route_table);
 }
+EXPORT_SYMBOL(rt_cache_flush);
 #endif

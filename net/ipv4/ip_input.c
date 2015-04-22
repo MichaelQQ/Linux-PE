@@ -462,3 +462,5 @@ drop:
 out:
 	return NET_RX_DROP;
 }
+
+EXPORT_SYMBOL(ip_rcv);

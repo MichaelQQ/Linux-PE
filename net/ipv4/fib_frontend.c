@@ -531,6 +531,7 @@ const struct nla_policy rtm_ipv4_policy[RTA_MAX + 1] = {
 	[RTA_METRICS]		= { .type = NLA_NESTED },
 	[RTA_MULTIPATH]		= { .len = sizeof(struct rtnexthop) },
 	[RTA_FLOW]		= { .type = NLA_U32 },
+        [RTA_SHIM]              = { .len = sizeof(struct rtshim) },
 };
 
 static int rtm_to_fib_config(struct net *net, struct sk_buff *skb,
@@ -596,6 +597,9 @@ static int rtm_to_fib_config(struct net *net, struct sk_buff *skb,
 		case RTA_TABLE:
 			cfg->fc_table = nla_get_u32(attr);
 			break;
+                case RTA_SHIM:
+                        memcpy(&cfg->fc_shim, nla_data(attr), nla_len(attr));
+                        break;
 		}
 	}
 
