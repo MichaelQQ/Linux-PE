@@ -21,6 +21,10 @@
 #include <linux/netfilter_bridge.h>
 #include "br_private.h"
 
+#include <net/mpls.h> //add by here 
+#include <linux/if_arp.h> //add by here
+#include <net/sock.h> //add by here
+
 static int deliver_clone(const struct net_bridge_port *prev,
 			 struct sk_buff *skb,
 			 void (*__packet_hook)(const struct net_bridge_port *p,
