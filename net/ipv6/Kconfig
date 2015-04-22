@@ -21,6 +21,15 @@ menuconfig IPV6
 
 if IPV6
 
+config INET6_MPLS
+	tristate "IPv6: MPLS support"
+	depends on IPV6 && MPLS
+	---help---
+	  If you say Y here, the kernel will support being an ingress
+	  and egress LER for IPv6 packets.
+
+	  If unsure, say N.
+
 config IPV6_ROUTER_PREF
 	bool "IPv6: Router Preference (RFC 4191) support"
 	---help---
