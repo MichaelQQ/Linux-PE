@@ -116,6 +116,7 @@
 #include <linux/ctype.h>
 #include <linux/if_arp.h>
 #include <linux/if_vlan.h>
+#include <net/shim.h>
 #include <linux/ip.h>
 #include <net/ip.h>
 #include <linux/ipv6.h>
@@ -6981,6 +6982,7 @@ static int __init net_dev_init(void)
 
 	hotcpu_notifier(dev_cpu_callback, 0);
 	dst_init();
+
 	rc = 0;
 out:
 	return rc;
