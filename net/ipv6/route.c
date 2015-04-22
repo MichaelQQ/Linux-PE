@@ -58,6 +58,7 @@
 #include <net/netevent.h>
 #include <net/netlink.h>
 #include <net/nexthop.h>
+#include <net/shim.h>
 
 #include <asm/uaccess.h>
 
@@ -296,6 +297,9 @@ static void ip6_dst_destroy(struct dst_entry *dst)
 
 	if (!(rt->dst.flags & DST_HOST))
 		dst_destroy_metrics_generic(dst);
+
+	if (rt->rt6i_shim)
+		shim_destroy_blk(rt->rt6i_shim);
 
 	if (idev) {
 		rt->rt6i_idev = NULL;
@@ -1671,6 +1675,14 @@ install_route:
 			}
 		}
 	}
+	if (cfg->fc_shim.datalen) {
+		rt->rt6i_shim = shim_build_blk(&cfg->fc_shim);
+		if (!rt->rt6i_shim) {
+			err = -EINVAL;
+			goto out;
+		}
+		rt->rt6i_shim->shim->build(rt->rt6i_shim, &rt->u.dst);
+	}
 
 	rt->dst.dev = dev;
 	rt->rt6i_idev = idev;
@@ -2330,6 +2342,7 @@ static const struct nla_policy rtm_ipv6_policy[RTA_MAX+1] = {
 	[RTA_PRIORITY]          = { .type = NLA_U32 },
 	[RTA_METRICS]           = { .type = NLA_NESTED },
 	[RTA_MULTIPATH]		= { .len = sizeof(struct rtnexthop) },
+	[RTA_SHIM]              = { .len = sizeof(struct rtshim) },
 };
 
 static int rtm_to_fib6_config(struct sk_buff *skb, struct nlmsghdr *nlh,
@@ -2411,6 +2424,10 @@ static int rtm_to_fib6_config(struct sk_buff *skb, struct nlmsghdr *nlh,
 		cfg->fc_mp = nla_data(tb[RTA_MULTIPATH]);
 		cfg->fc_mp_len = nla_len(tb[RTA_MULTIPATH]);
 	}
+
+	if (tb[RTA_SHIM])
+		memcpy(&cfg->fc_shim, nla_data(tb[RTA_SHIM]),
+			nla_len(tb[RTA_SHIM]));
 
 	err = 0;
 errout:
