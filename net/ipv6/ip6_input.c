@@ -359,3 +359,5 @@ out:
 
 	return 0;
 }
+
+EXPORT_SYMBOL(ipv6_rcv);
