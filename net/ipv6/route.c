@@ -1681,7 +1681,7 @@ install_route:
 			err = -EINVAL;
 			goto out;
 		}
-		rt->rt6i_shim->shim->build(rt->rt6i_shim, &rt->u.dst);
+		rt->rt6i_shim->shim->build(rt->rt6i_shim, &rt->dst);
 	}
 
 	rt->dst.dev = dev;
