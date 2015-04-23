@@ -31,7 +31,7 @@ extern int ipv6_rcv(struct sk_buff *skb, struct net_device *dev, struct packet_t
 
 static void mpls6_cache_flush(struct net *net)
 {
-	fib6_run_gc((unsigned long)0, net);
+	fib6_run_gc((unsigned long)0, net, true);
 }
 
 static void mpls6_set_ttl(struct sk_buff *skb, int ttl)
@@ -97,9 +97,10 @@ static int mpls6_local_deliver(struct sk_buff *skb)
 static int mpls6_nexthop_resolve(struct neighbour **np, struct sockaddr *sock_addr, struct net_device *dev)
 {
 	struct sockaddr_in6 *addr = (struct sockaddr_in6 *) sock_addr;
-	struct flowi fl = { .oif = dev->ifindex,
-	                    .nl_u = { .ip6_u = {.daddr = addr->sin6_addr } } };
+	struct flowi6 fl = { .__fl_common.flowic_oif = dev->ifindex,
+	                     .daddr = addr->sin6_addr };
 	struct dst_entry *dst;
+	struct neighbour *neigh;
 	int err;
 
 	if (addr->sin6_family != AF_INET6)
@@ -110,9 +111,10 @@ static int mpls6_nexthop_resolve(struct neighbour **np, struct sockaddr *sock_ad
 	err = 0;
 	if (dst->error)
 		err = -EINVAL;
-                                                                                
+                                
+	neigh = dst_neigh_lookup(dst, &fl.daddr);  
 	if (!err)
-		*np = neigh_clone(dst->neighbour);
+		*np = neigh_clone(neigh);
 
 
 	dst_release(dst);
