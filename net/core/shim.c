@@ -20,7 +20,7 @@
 #include <linux/proc_fs.h>
 #include <linux/seq_file.h>
 
-spinlock_t shim_proto_lock = SPIN_LOCK_UNLOCKED;
+spinlock_t shim_proto_lock = __SPIN_LOCK_UNLOCKED(shim_proto_lock);
 struct list_head shim_proto_list;
 
 /**
@@ -291,14 +291,14 @@ static struct file_operations shim_seq_fops = {
 
 static int __net_init shim_proc_net_init(struct net *net)
 {
-	if (!proc_net_fops_create(net, "shim",  S_IRUGO, &shim_seq_fops))
+	if (!proc_create("shim",  S_IRUGO, net->proc_net, &shim_seq_fops))
 	    return -ENOMEM;
 	return 0;
 }
 
 static void __net_exit shim_proc_net_exit(struct net *net)
 {
-	proc_net_remove(net, "shim");
+	remove_proc_entry("shim", net->proc_net);
 }
 
 static struct pernet_operations __net_initdata shim_proc_ops = {
