@@ -41,8 +41,6 @@ static struct neigh_ops dumb_neigh_ops = {
 	.error_report =         dumb_neigh_error,
 	.output =               dumb_neigh_dev_xmit,
 	.connected_output =     dumb_neigh_dev_xmit,
-	.hh_output =            dumb_neigh_dev_xmit,
-	.queue_xmit =           dumb_neigh_dev_xmit,
 };
 
 static u32 dumb_neigh_hash(const void *pkey, const struct net_device *dev)
@@ -73,7 +71,7 @@ static struct neigh_table dumb_tbl = {
 		.gc_staletime           = 60 * HZ,
 		.reachable_time         = 30 * HZ,
 		.delay_probe_time       = 5 * HZ,
-		.queue_len              = 3,
+		.queue_len_bytes        = 3,
 		.ucast_probes           = 3,
 		.mcast_probes           = 3,
 		.anycast_delay          = 1 * HZ,
