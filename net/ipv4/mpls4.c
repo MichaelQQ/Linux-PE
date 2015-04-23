@@ -29,7 +29,7 @@ MODULE_LICENSE("GPL");
 
 static void mpls4_cache_flush(struct net *net)
 {
-	rt_cache_flush(net, 0);
+	rt_cache_flush(net);
 }
 
 static void mpls4_set_ttl(struct sk_buff *skb, int ttl)
@@ -223,21 +223,21 @@ mpls4_build_icmp(struct sk_buff *skb, int type, unsigned int icmp_data,
 	nskb->csum = 0;
 
 	{
-		struct flowi fl = {
-			.nl_u = { .ip4_u = {
-					.daddr = iph->daddr,
-					.saddr = iph->saddr,
-					.tos = RT_TOS(iph->tos) } },
-			.proto = IPPROTO_ICMP };
+		struct flowi4 fl = {
+				.daddr = iph->daddr,
+				.saddr = iph->saddr,
+				.__fl_common.flowic_tos = RT_TOS(iph->tos),
+				.__fl_common.flowic_proto = IPPROTO_ICMP
+			};
 
-		if (ip_route_output_key(&init_net, &rt, &fl))
+		if (ip_route_output_key(&init_net, &fl))
 			goto error_1;
 	}
 
 	if (skb_dst(nskb))
 		dst_release(skb_dst(nskb));
 
-	skb_dst_set(nskb, &rt->u.dst);
+	skb_dst_set(nskb, &rt->dst);
 
 	return nskb;
 
