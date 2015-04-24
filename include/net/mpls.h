@@ -365,7 +365,7 @@ struct mpls_nhlfe {
 		struct dst_entry	dst;
 		struct mpls_nhlfe	*next;
 	} u;
-#define nhlfe_mtu		u.dst.metrics[RTAX_MTU-1]
+#define nhlfe_mtu		u.dst._metrics
 
 	/* user configured references as opposed to the references
 	 * created by protocol drivers (ie IPv4 route cache)
