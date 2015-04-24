@@ -48,6 +48,7 @@ mpls_send (struct sk_buff *skb, int mtu)
 {
 	int retval = MPLS_RESULT_SUCCESS;
 	struct mpls_prot_driver *prot = MPLSCB(skb)->prot;
+	struct neighbour *n;
 
 	if (MPLSCB(skb)->popped_bos) {
 		if (MPLSCB(skb)->ttl < MPLSCB(skb)->prot->get_ttl(skb)) {
@@ -111,9 +112,10 @@ mpls_send (struct sk_buff *skb, int mtu)
 		skb = skb2;
         }
 
-	if(skb_dst(skb)->neighbour) {
+        n = dst_neigh_lookup(skb_dst(skb), &ip_hdr(skb)->daddr);
+	if(n) {
 		MPLS_DEBUG("using neighbour (%p)\n",skb);
-		skb_dst(skb)->neighbour->output(skb);
+		n->output(n, skb);
 	} else {
 		MPLS_DEBUG("no hh no neighbor!?\n");
 		retval = MPLS_RESULT_DROP;
