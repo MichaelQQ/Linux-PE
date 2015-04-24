@@ -36,6 +36,7 @@
 #include <linux/genetlink.h>
 #include <linux/socket.h>
 #include <net/net_namespace.h>
+#include <net/dst.h>
 
 LIST_HEAD(mpls_ilm_list);
 
@@ -56,7 +57,6 @@ struct dst_ops ilm_dst_ops = {
 	.negative_advice = ilm_dst_negative_advice,
 	.link_failure	 = ilm_dst_link_failure,
 	.update_pmtu	 = ilm_dst_update_pmtu,
-	.entries	 = ATOMIC_INIT(0)
 };
 
 static struct dst_entry *
@@ -121,14 +121,15 @@ ilm_dst_gc (struct dst_ops *ops)
 
 struct mpls_ilm*
 mpls_ilm_dst_alloc(unsigned int key, struct mpls_label *ml,
-	unsigned short family, struct mpls_instr_elem *instr, int instr_len)
+	unsigned short family, struct mpls_instr_elem *instr, int instr_len, 
+	struct net_device *dev, int flags)
 {
 	struct mpls_ilm *ilm;
 	int result;
 
 	MPLS_ENTER;
 
-	ilm = dst_alloc (&ilm_dst_ops);
+	ilm = dst_alloc (&ilm_dst_ops, dev, 0, DST_OBSOLETE_FORCE_CHK, flags);
 	if (unlikely(!ilm))
 		goto ilm_dst_alloc_0;
 
@@ -555,7 +556,7 @@ mpls_add_in_label (const struct mpls_in_label_req *in)
 	instr[1].mir_direction = MPLS_IN;
 	instr[1].mir_opcode    = MPLS_OP_PEEK;
 
-	ilm = mpls_ilm_dst_alloc (key, ml, in->mil_proto, instr, 2);
+	ilm = mpls_ilm_dst_alloc (key, ml, in->mil_proto, instr, 2, NULL, 0);
 	if (unlikely(!ilm)) {
 		retval = -ENOMEM;
 		goto error;

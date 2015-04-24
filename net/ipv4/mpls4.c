@@ -367,7 +367,7 @@ static int __init mpls4_init(void)
 	instr[1].mir_direction = MPLS_IN;
 	instr[1].mir_opcode    = MPLS_OP_DLV;
 
-	ilm = mpls_ilm_dst_alloc(0, &ml, AF_INET, instr, 2);
+	ilm = mpls_ilm_dst_alloc(0, &ml, AF_INET, instr, 2, NULL, 0);
 	if (!ilm)
 		return -ENOMEM;
 

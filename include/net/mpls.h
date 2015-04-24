@@ -345,7 +345,8 @@ struct mpls_ilm*  mpls_get_ilm_by_label(struct mpls_label *label,
 				int labelspace, char bos);
 extern struct mpls_ilm* mpls_ilm_dst_alloc(unsigned int key,
 				struct mpls_label *ml, unsigned short family,
-				struct mpls_instr_elem *instr, int instr_len);
+				struct mpls_instr_elem *instr, int instr_len,
+				struct net_device *dev, int flags);
 
 
 
