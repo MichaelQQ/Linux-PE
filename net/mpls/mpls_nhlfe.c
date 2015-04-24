@@ -61,7 +61,6 @@ struct dst_ops nhlfe_dst_ops = {
 	.negative_advice = nhlfe_dst_negative_advice,
 	.link_failure	 = nhlfe_dst_link_failure,
 	.update_pmtu	 = nhlfe_dst_update_pmtu,
-	.entries	 = ATOMIC_INIT(0)
 };
 
 static struct dst_entry *
@@ -125,13 +124,13 @@ nhlfe_dst_gc (struct dst_ops *ops)
  **/
 
 struct mpls_nhlfe*
-nhlfe_dst_alloc(unsigned int key)
+nhlfe_dst_alloc(unsigned int key, struct net_device *dev, int flags)
 {
 	struct mpls_nhlfe *nhlfe;
 
 	MPLS_ENTER;
 
-	nhlfe = dst_alloc (&nhlfe_dst_ops);
+	nhlfe = dst_alloc (&nhlfe_dst_ops, dev, 0, DST_OBSOLETE_FORCE_CHK, flags);
 	if (unlikely(!nhlfe))
 		goto nhlfe_dst_alloc_0;
 
@@ -417,7 +416,7 @@ mpls_add_out_label (struct mpls_out_label_req *out, int seq, int pid)
 	/* 
 	 * Allocate a new Output Information/Label,
 	 */
-	nhlfe = nhlfe_dst_alloc (key);
+	nhlfe = nhlfe_dst_alloc (key, NULL, 0);
 	if (unlikely(!nhlfe)) {
 		retval = -ENOMEM;
 		goto error;
