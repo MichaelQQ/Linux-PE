@@ -29,10 +29,10 @@ extern struct list_head mpls_proto_list;
  * MODULE Information and attributes
  */
 
-MODULE_AUTHOR("James R. Leu <jleu@mindspring.com>");
+/*MODULE_AUTHOR("James R. Leu <jleu@mindspring.com>");
 MODULE_DESCRIPTION("net-mpls procfs module");
 MODULE_LICENSE("GPL");
-
+*/
 /*
  * The following few functions build the content of /proc/net/mpls
  */
@@ -125,7 +125,7 @@ static struct file_operations mpls_seq_fops = {
 
 int __init mpls_procfs_init(void)
 {
-	if (!proc_net_fops_create(&init_net, "mpls",  S_IRUGO,
+	if (!proc_create("mpls",  S_IRUGO, &init_net,
 				  &mpls_seq_fops)) {
 		printk(MPLS_ERR "MPLS: failed to register with procfs\n");
 		return -ENOMEM;
@@ -135,5 +135,5 @@ int __init mpls_procfs_init(void)
 
 void __exit mpls_procfs_exit(void)
 {
-	proc_net_remove(&init_net, "mpls");
+	remove_proc_entry("mpls", &init_net);
 }
