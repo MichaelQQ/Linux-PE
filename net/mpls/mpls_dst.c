@@ -50,7 +50,6 @@ struct dst_ops mpls_dst_ops = {
 	.negative_advice = mpls_negative_advice,
 	.link_failure    = mpls_link_failure,
 	.update_pmtu     = mpls_dst_update_pmtu,
-	.entries	 = ATOMIC_INIT(0)
 };
 
 
@@ -119,13 +118,13 @@ static void
 mpls_dst_update_pmtu (struct dst_entry *dst, u32 mtu)
 {
 	MPLS_ENTER;
-	if (dst->metrics[RTAX_MTU-1] > mtu && mtu >= 68 &&
+	if (dst->_metrics > mtu && mtu >= 68 &&
 	    !(dst_metric_locked (dst, RTAX_MTU)) ) {
 		if (mtu < mpls_dst_min_pmtu) {
 			mtu = mpls_dst_min_pmtu;
-			dst->metrics[RTAX_LOCK-1] |= (1 << RTAX_MTU);
+			dst->_metrics |= (1 << RTAX_MTU);
 		}
-		dst->metrics[RTAX_MTU-1] = mtu;
+		dst->_metrics = mtu;
 		dst_set_expires (dst, mpls_dst_mtu_expires);
 	}
 	MPLS_EXIT;
@@ -183,7 +182,7 @@ mpls_dst_alloc ( struct net_device *dev, struct sockaddr *nh)
 		goto mpls_dst_alloc_2;
 
 	/* Allocate a MPLS dst entry */
-	md = dst_alloc (&mpls_dst_ops);
+	md = dst_alloc (&mpls_dst_ops, dev, 0, DST_OBSOLETE_FORCE_CHK, 0);
 	if (unlikely(!md)) 
 		goto mpls_dst_alloc_1;
 
@@ -193,13 +192,13 @@ mpls_dst_alloc ( struct net_device *dev, struct sockaddr *nh)
 	dev_hold(dev);
 	md->u.dst.dev   = dev;
 	md->u.dst.flags = DST_HOST;
-	md->u.dst.hh    = NULL;
+	//md->u.dst.hh    = NULL;
 
 	/* Set next hop MPLS attr */
 	memcpy(&md->md_nh,nh,sizeof(struct sockaddr));
 
 	/* use the protocol driver to resolve the neighbour */
-	if (prot->nexthop_resolve(&md->u.dst.neighbour, nh, dev))
+	if (prot->nexthop_resolve(NULL, nh, dev))
 		goto mpls_dst_alloc_0;
 
 	mpls_proto_release(prot);
