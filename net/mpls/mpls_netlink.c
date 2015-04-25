@@ -40,6 +40,11 @@ static struct genl_family genl_mpls = {
 	.maxattr = MPLS_ATTR_MAX,
 };
 
+static const struct genl_multicast_group mpls_gnl_mcgrps[] = {
+        { .name = "msg", },
+};
+
+
 /* ILM netlink support */
 
 static int mpls_fill_ilm(struct sk_buff *skb, struct mpls_ilm *ilm,
@@ -65,9 +70,9 @@ static int mpls_fill_ilm(struct sk_buff *skb, struct mpls_ilm *ilm,
 	memcpy(&stats, &ilm->ilm_stats, sizeof(stats));
 	/* need to add drops here some how */
 
-	NLA_PUT(skb, MPLS_ATTR_ILM, sizeof(mil), &mil);
-	NLA_PUT(skb, MPLS_ATTR_INSTR, sizeof(*instr), instr);
-	NLA_PUT(skb, MPLS_ATTR_STATS, sizeof(stats), &stats);
+	nla_put(skb, MPLS_ATTR_ILM, sizeof(mil), &mil);
+	nla_put(skb, MPLS_ATTR_INSTR, sizeof(*instr), instr);
+	nla_put(skb, MPLS_ATTR_STATS, sizeof(stats), &stats);
 
 	kfree(instr);
 
@@ -101,7 +106,7 @@ void mpls_ilm_event(int event, struct mpls_ilm *ilm)
 		MPLS_DEBUG("Exit: EINVAL\n");
 		return;
 	}
-	genlmsg_multicast(skb, 0, MPLS_GRP_ILM, GFP_KERNEL);
+	genlmsg_multicast(&genl_mpls, skb, 0, MPLS_GRP_ILM, GFP_KERNEL);
 	MPLS_EXIT;
 }
 
@@ -178,13 +183,13 @@ static int genl_mpls_ilm_get(struct sk_buff *skb, struct genl_info *info)
 	if (!ilm) {
 		retval = -ESRCH;
 	} else {
-		if (mpls_fill_ilm(skb, ilm, info->snd_pid, info->snd_seq,
+		if (mpls_fill_ilm(skb, ilm, info->snd_portid, info->snd_seq,
 			0, MPLS_CMD_NEWILM) < 0)
 			retval = -EINVAL;
 
 		mpls_ilm_release (ilm);
 	}
-	retval = genlmsg_unicast(&init_net, skb, info->snd_pid);
+	retval = genlmsg_unicast(&init_net, skb, info->snd_portid);
 err:
 	MPLS_DEBUG("Exit: %d\n", retval);
 	return retval;
@@ -204,7 +209,7 @@ static int genl_mpls_ilm_dump(struct sk_buff *skb, struct netlink_callback *cb)
 	list_for_each_entry_rcu(ilm, &mpls_ilm_list, global) {
 		MPLS_DEBUG("Dump: entry %d\n", entry_count);
 		if (entry_count >= entries_to_skip) {
-			if (mpls_fill_ilm(skb, ilm, NETLINK_CB(cb->skb).pid,
+			if (mpls_fill_ilm(skb, ilm, NETLINK_CB(cb->skb).portid,
 				cb->nlh->nlmsg_seq, NLM_F_MULTI,
 				MPLS_CMD_NEWILM) < 0) {
 				break;
@@ -246,9 +251,9 @@ static int mpls_fill_nhlfe(struct sk_buff *skb, struct mpls_nhlfe *nhlfe,
 	memcpy(&stats, &nhlfe->nhlfe_stats, sizeof(stats));
 	/* need to get drops added here some how */
 
-	NLA_PUT(skb, MPLS_ATTR_NHLFE, sizeof(mol), &mol);
-	NLA_PUT(skb, MPLS_ATTR_INSTR, sizeof(*instr), instr);
-	NLA_PUT(skb, MPLS_ATTR_STATS, sizeof(stats), &stats);
+	nla_put(skb, MPLS_ATTR_NHLFE, sizeof(mol), &mol);
+	nla_put(skb, MPLS_ATTR_INSTR, sizeof(*instr), instr);
+	nla_put(skb, MPLS_ATTR_STATS, sizeof(stats), &stats);
 
 	kfree(instr);
 
@@ -282,7 +287,7 @@ void mpls_nhlfe_event(int event, struct mpls_nhlfe *nhlfe, int seq, int pid)
 		MPLS_DEBUG("Exit: EINVAL\n");
 		return;
 	}
-	genlmsg_multicast(skb, 0, MPLS_GRP_NHLFE, GFP_KERNEL);
+	genlmsg_multicast(&genl_mpls, skb, 0, MPLS_GRP_NHLFE, GFP_KERNEL);
 	MPLS_EXIT;
 }
 
@@ -309,7 +314,7 @@ static int genl_mpls_nhlfe_new(struct sk_buff *skb, struct genl_info *info)
 			retval = -EINVAL;
 		else {
 			retval = mpls_add_out_label(mol, info->snd_seq,
-				info->snd_pid);
+				info->snd_portid);
 		}
 	} else {
 		retval = 0;
@@ -365,13 +370,13 @@ static int genl_mpls_nhlfe_get(struct sk_buff *skb, struct genl_info *info)
 	if (!nhlfe) {
 		retval = -ESRCH;
 	} else {
-		if (mpls_fill_nhlfe(skb, nhlfe, info->snd_pid, info->snd_seq,
+		if (mpls_fill_nhlfe(skb, nhlfe, info->snd_portid, info->snd_seq,
 			0, MPLS_CMD_NEWNHLFE) < 0)
 			retval = -EINVAL;
 
 		mpls_nhlfe_release (nhlfe);
 	}
-	retval = genlmsg_unicast(&init_net, skb, info->snd_pid);
+	retval = genlmsg_unicast(&init_net, skb, info->snd_portid);
 err:
 	MPLS_DEBUG("Exit: %d\n", retval);
 	return retval;
@@ -392,7 +397,7 @@ static int genl_mpls_nhlfe_dump(struct sk_buff *skb,
 	list_for_each_entry_rcu(nhlfe, &mpls_nhlfe_list, global) {
 		MPLS_DEBUG("Dump: entry %d\n", entry_count);
 		if (entry_count >= entries_to_skip) {
-			if (mpls_fill_nhlfe(skb, nhlfe, NETLINK_CB(cb->skb).pid,
+			if (mpls_fill_nhlfe(skb, nhlfe, NETLINK_CB(cb->skb).portid,
 				cb->nlh->nlmsg_seq, NLM_F_MULTI,
 				MPLS_CMD_NEWNHLFE) <= 0) {
 				break;
@@ -421,7 +426,7 @@ static int mpls_fill_xc(struct sk_buff *skb, struct mpls_ilm *ilm,
 	xc.mx_out.ml_type = MPLS_LABEL_KEY;
 	xc.mx_out.u.ml_key = nhlfe->nhlfe_key;
 
-	NLA_PUT(skb, MPLS_ATTR_XC, sizeof(xc), &xc);
+	nla_put(skb, MPLS_ATTR_XC, sizeof(xc), &xc);
 
 	MPLS_DEBUG("Exit: length\n");
 	return genlmsg_end(skb, hdr);
@@ -451,7 +456,7 @@ void mpls_xc_event(int event, struct mpls_ilm *ilm,
 		MPLS_DEBUG("Exit: EINVAL\n");
 		return;
 	}
-	genlmsg_multicast(skb, 0, MPLS_GRP_XC, GFP_KERNEL);
+	genlmsg_multicast(&genl_mpls, skb, 0, MPLS_GRP_XC, GFP_KERNEL);
 	MPLS_EXIT;
 }
 
@@ -521,13 +526,13 @@ static int genl_mpls_xc_get(struct sk_buff *skb, struct genl_info *info)
 		} else {
 			nhlfe = mi->mi_data;
 
-			if (mpls_fill_xc(skb, ilm, nhlfe, info->snd_pid,
+			if (mpls_fill_xc(skb, ilm, nhlfe, info->snd_portid,
 				info->snd_seq, 0, MPLS_CMD_NEWXC) < 0)
 				retval = -EINVAL;
 		}
 		mpls_ilm_release (ilm);
 	}
-	retval = genlmsg_unicast(&init_net, skb, info->snd_pid);
+	retval = genlmsg_unicast(&init_net, skb, info->snd_portid);
 err:
 	MPLS_DEBUG("Exit: %d\n", retval);
 	return retval;
@@ -559,7 +564,7 @@ static int genl_mpls_xc_dump(struct sk_buff *skb, struct netlink_callback *cb)
 			nhlfe = mi->mi_data;
 
 			if (mpls_fill_xc(skb, ilm, nhlfe,
-				NETLINK_CB(cb->skb).pid, cb->nlh->nlmsg_seq,
+				NETLINK_CB(cb->skb).portid, cb->nlh->nlmsg_seq,
 				NLM_F_MULTI, MPLS_CMD_NEWXC) < 0) {
 				break;
 			}
@@ -586,7 +591,7 @@ static int mpls_fill_labelspace(struct sk_buff *skb, struct net_device *dev,
 	ls.mls_ifindex = dev->ifindex;
 	ls.mls_labelspace = mpls_get_labelspace_by_index(dev->ifindex);
 
-	NLA_PUT(skb, MPLS_ATTR_LABELSPACE, sizeof(ls), &ls);
+	nla_put(skb, MPLS_ATTR_LABELSPACE, sizeof(ls), &ls);
 
 	MPLS_DEBUG("Exit: length\n");
 	return genlmsg_end(skb, hdr);
@@ -615,7 +620,7 @@ void mpls_labelspace_event(int event, struct net_device *dev)
 		MPLS_DEBUG("Exit: EINVAL\n");
 		return;
 	}
-	genlmsg_multicast(skb, 0, MPLS_GRP_LABELSPACE, GFP_KERNEL);
+	genlmsg_multicast(&genl_mpls, skb, 0, MPLS_GRP_LABELSPACE, GFP_KERNEL);
 	MPLS_EXIT;
 }
 
@@ -646,12 +651,12 @@ static int genl_mpls_labelspace_get(struct sk_buff *skb, struct genl_info *info)
 	if (!dev) {
 		retval = -ESRCH;
 	} else {
-		if (mpls_fill_labelspace(skb, dev, info->snd_pid,
+		if (mpls_fill_labelspace(skb, dev, info->snd_portid,
 			info->snd_seq, 0, MPLS_CMD_SETLABELSPACE) < 0)
 			retval = -EINVAL;
 		dev_put (dev);
 	}
-	retval = genlmsg_unicast(&init_net, skb, info->snd_pid);
+	retval = genlmsg_unicast(&init_net, skb, info->snd_portid);
 err:
 	MPLS_DEBUG("Exit: %d\n", retval);
 	return retval;
@@ -673,7 +678,7 @@ static int genl_mpls_labelspace_dump(struct sk_buff *skb,
 		MPLS_DEBUG("Dump: entry %d\n", entry_count);
 		if (entry_count >= entries_to_skip) {
 			if (mpls_fill_labelspace(skb, dev,
-				NETLINK_CB(cb->skb).pid, cb->nlh->nlmsg_seq,
+				NETLINK_CB(cb->skb).portid, cb->nlh->nlmsg_seq,
 				NLM_F_MULTI, MPLS_CMD_SETLABELSPACE) < 0) {
 				break;
 			}
@@ -709,7 +714,7 @@ static int mpls_fill_tunnel(struct sk_buff *skb,
 		ls.mls_labelspace = -1;
 	}*/
 
-	NLA_PUT(skb, MPLS_ATTR_TUNNEL, sizeof(ls), &ls);
+	nla_put(skb, MPLS_ATTR_TUNNEL, sizeof(ls), &ls);
 
 	MPLS_DEBUG("Exit: length\n");
 	return genlmsg_end(skb, hdr);
@@ -740,7 +745,7 @@ void mpls_tunnel_event(int event)
 		MPLS_DEBUG("Exit: EINVAL\n");
 		return;
 	}
-	genlmsg_multicast(skb, 0, MPLS_GRP_TUNNEL, GFP_KERNEL);
+	genlmsg_multicast(&genl_mpls, skb, 0, MPLS_GRP_TUNNEL, GFP_KERNEL);
 	MPLS_EXIT;
 }
 
@@ -857,20 +862,20 @@ int __init mpls_netlink_init(void)
 
 	err = genl_register_family(&genl_mpls);
 
-	err += genl_register_ops(&genl_mpls, &genl_mpls_ilm_new_ops);
-	err += genl_register_ops(&genl_mpls, &genl_mpls_ilm_del_ops);
-	err += genl_register_ops(&genl_mpls, &genl_mpls_ilm_get_ops);
+	/*err += genl_register_family_with_ops_groups(&genl_mpls, &genl_mpls_ilm_new_ops, genl_mpls);
+	err += genl_register_family_with_ops_groups(&genl_mpls, &genl_mpls_ilm_del_ops, genl_mpls);
+	err += genl_register_family_with_ops_groups(&genl_mpls, &genl_mpls_ilm_get_ops, genl_mpls);
 
-	err += genl_register_ops(&genl_mpls, &genl_mpls_nhlfe_new_ops);
-	err += genl_register_ops(&genl_mpls, &genl_mpls_nhlfe_del_ops);
-	err += genl_register_ops(&genl_mpls, &genl_mpls_nhlfe_get_ops);
+	err += genl_register_family_with_ops_groups(&genl_mpls, &genl_mpls_nhlfe_new_ops, genl_mpls);
+	err += genl_register_family_with_ops_groups(&genl_mpls, &genl_mpls_nhlfe_del_ops, genl_mpls);
+	err += genl_register_family_with_ops_groups(&genl_mpls, &genl_mpls_nhlfe_get_ops, genl_mpls);
 
-	err += genl_register_ops(&genl_mpls, &genl_mpls_xc_new_ops);
-	err += genl_register_ops(&genl_mpls, &genl_mpls_xc_del_ops);
-	err += genl_register_ops(&genl_mpls, &genl_mpls_xc_get_ops);
+	err += genl_register_family_with_ops_groups(&genl_mpls, &genl_mpls_xc_new_ops, genl_mpls);
+	err += genl_register_family_with_ops_groups(&genl_mpls, &genl_mpls_xc_del_ops, genl_mpls);
+	err += genl_register_family_with_ops_groups(&genl_mpls, &genl_mpls_xc_get_ops, genl_mpls);
 
-	err += genl_register_ops(&genl_mpls, &genl_mpls_labelspace_set_ops);
-	err += genl_register_ops(&genl_mpls, &genl_mpls_labelspace_get_ops);
+	err += genl_register_family_with_ops_groups(&genl_mpls, &genl_mpls_labelspace_set_ops, genl_mpls);
+	err += genl_register_family_with_ops_groups(&genl_mpls, &genl_mpls_labelspace_get_ops, genl_mpls);
 
 	if (err) {
 		printk(MPLS_ERR "MPLS: failed to register with genetlink\n");
@@ -878,8 +883,8 @@ int __init mpls_netlink_init(void)
 	}
 
 	//add by here for create the tunnel interface
-	err += genl_register_ops(&genl_mpls, &genl_mpls_tunnel_add_ops);
-	err += genl_register_ops(&genl_mpls, &genl_mpls_tunnel_del_ops);
+	err += genl_register_family_with_ops_groups(&genl_mpls, &genl_mpls_tunnel_add_ops, genl_mpls);
+	err += genl_register_family_with_ops_groups(&genl_mpls, &genl_mpls_tunnel_del_ops, genl_mpls)*/;
 	if (err < 0)
 		goto errout_register_5;
 	//end by here
@@ -887,15 +892,16 @@ int __init mpls_netlink_init(void)
 	return 0;
 
 errout_register_5:
-	genl_unregister_ops(&genl_mpls, &genl_mpls_tunnel_add_ops);
-	genl_unregister_ops(&genl_mpls, &genl_mpls_tunnel_del_ops);
+	/*genl_unregister_ops(&genl_mpls, &genl_mpls_tunnel_add_ops);
+	genl_unregister_ops(&genl_mpls, &genl_mpls_tunnel_del_ops);*/
+	genl_unregister_family(&genl_mpls);
 	printk(MPLS_ERR "MPLS: failed to register with genetlink\n");
 	return -EINVAL;
 }
 
 void __exit mpls_netlink_exit(void)
 {
-	//add by here for create the tunnel interface
+	/*//add by here for create the tunnel interface
 	genl_unregister_ops(&genl_mpls, &genl_mpls_tunnel_add_ops);
 	//add by here for create the tunnel interface
 	genl_unregister_ops(&genl_mpls, &genl_mpls_tunnel_del_ops);
@@ -913,7 +919,7 @@ void __exit mpls_netlink_exit(void)
 
 	genl_unregister_ops(&genl_mpls, &genl_mpls_ilm_del_ops);
 	genl_unregister_ops(&genl_mpls, &genl_mpls_ilm_new_ops);
-	genl_unregister_ops(&genl_mpls, &genl_mpls_ilm_get_ops);
+	genl_unregister_ops(&genl_mpls, &genl_mpls_ilm_get_ops);*/
 
 	genl_unregister_family(&genl_mpls);
 }
