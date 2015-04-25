@@ -37,7 +37,7 @@ int mpls_set_nexthop2(struct mpls_nhlfe *nhlfe, struct dst_entry *dst)
 {
 	MPLS_ENTER;
 
-	dst->metrics[RTAX_MTU-1] = nhlfe->nhlfe_mtu;
+	dst->_metrics = nhlfe->nhlfe_mtu;
 	dst->child = dst_clone(&nhlfe->u.dst);
 	MPLS_DEBUG("nhlfe: %p mtu: %d dst: %p\n", nhlfe, nhlfe->nhlfe_mtu,
 		&nhlfe->u.dst);
