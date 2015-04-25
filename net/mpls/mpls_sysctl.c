@@ -1,6 +1,3 @@
--- mpls-linux-2.6.35.y/net/mpls/mpls_sysctl.c	1970-01-01 08:00:00.000000000 +0800
-++ linux-2.6.35-vpls/net/mpls/mpls_sysctl.c	2015-04-20 20:24:43.759583630 +0800
-@ -0,0 +1,45 @@
 /*
  * sysctl_net_mpls.c: sysctl interface to net MPLS subsystem.
  */
