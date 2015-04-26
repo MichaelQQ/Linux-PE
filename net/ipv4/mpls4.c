@@ -301,7 +301,7 @@ static int mpls4_local_deliver(struct sk_buff *skb)
 }
 
 #if defined(CONFIG_ATM_CLIP) || defined(CONFIG_ATM_CLIP_MODULE)
-extern struct neigh_table *clip_tbl_hook;
+struct neigh_table *clip_tbl_hook;
 #endif
 
 static int mpls4_nexthop_resolve(struct neighbour **np, struct sockaddr *sock_addr, struct net_device *dev)

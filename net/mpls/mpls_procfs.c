@@ -21,6 +21,7 @@
 #include <linux/proc_fs.h>
 #include <linux/seq_file.h>
 #include <net/net_namespace.h>
+#include <linux/module.h>
 
 extern spinlock_t mpls_proto_lock;
 extern struct list_head mpls_proto_list;
