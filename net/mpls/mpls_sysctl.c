@@ -23,17 +23,11 @@ static ctl_table mpls_table[] = {
 	},
 };
 
-static struct ctl_path mpls_path[] = {
-	{ .procname = "net", },
-	{ .procname = "mpls", },
-	{ }
-};
-
 static struct ctl_table_header *mpls_table_header;
 
 int __init mpls_sysctl_init(void)
 {
-	mpls_table_header = register_sysctl_paths(mpls_path, mpls_table);
+	mpls_table_header = register_net_sysctl(&init_net, "net/mpls", mpls_table);
 	if (!mpls_table_header)
 		return -ENOMEM;
 	return 0;
