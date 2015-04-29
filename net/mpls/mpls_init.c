@@ -204,8 +204,8 @@ mpls_init_module (void)
 		return err;
 #endif
 #ifdef CONFIG_SYSCTL
-	//if ((err = mpls_sysctl_init()))
-	//	return err;
+	if ((err = mpls_sysctl_init()))
+		return err;
 #endif*/
 	// Netlink configuration interface 
 	if ((err = mpls_netlink_init()))
