@@ -781,145 +781,99 @@ static struct nla_policy genl_mpls_policy[MPLS_ATTR_MAX+1] __read_mostly = {
 	[MPLS_ATTR_STATS] = { .len = sizeof(struct gnet_stats_basic) },
 };
 
-static struct genl_ops genl_mpls_ilm_new_ops = {
-	.cmd		= MPLS_CMD_NEWILM,
-	.doit		= genl_mpls_ilm_new,
-	.policy		= genl_mpls_policy,
+static struct genl_ops mpls_genl_ops[] = {
+	{
+		.cmd		= MPLS_CMD_NEWILM,
+		.doit		= genl_mpls_ilm_new,
+		.policy		= genl_mpls_policy,
+	},
+	{
+		.cmd		= MPLS_CMD_DELILM,
+		.doit		= genl_mpls_ilm_del,
+		.policy		= genl_mpls_policy,
+	},
+	{
+		.cmd		= MPLS_CMD_GETILM,
+		.doit		= genl_mpls_ilm_get,
+		.dumpit		= genl_mpls_ilm_dump,
+		.policy		= genl_mpls_policy,
+	},
+	{
+		.cmd		= MPLS_CMD_NEWNHLFE,
+		.doit		= genl_mpls_nhlfe_new,
+		.policy		= genl_mpls_policy,
+	},
+	{
+		.cmd		= MPLS_CMD_DELNHLFE,
+		.doit		= genl_mpls_nhlfe_del,
+		.policy		= genl_mpls_policy,
+	},
+	{
+		.cmd		= MPLS_CMD_GETNHLFE,
+		.doit		= genl_mpls_nhlfe_get,
+		.dumpit		= genl_mpls_nhlfe_dump,
+		.policy		= genl_mpls_policy,
+	},
+	{
+		.cmd		= MPLS_CMD_NEWXC,
+		.doit		= genl_mpls_xc_new,
+		.policy		= genl_mpls_policy,
+	},
+	{
+		.cmd		= MPLS_CMD_DELXC,
+		.doit		= genl_mpls_xc_del,
+		.policy		= genl_mpls_policy,
+	},
+	{
+		.cmd		= MPLS_CMD_GETXC,
+		.doit		= genl_mpls_xc_get,
+		.dumpit		= genl_mpls_xc_dump,
+		.policy		= genl_mpls_policy,
+	},
+	{
+		.cmd		= MPLS_CMD_SETLABELSPACE,
+		.doit		= genl_mpls_labelspace_set,
+		.policy		= genl_mpls_policy,
+	},
+	{
+		.cmd		= MPLS_CMD_GETLABELSPACE,
+		.doit		= genl_mpls_labelspace_get,
+		.dumpit		= genl_mpls_labelspace_dump,
+		.policy		= genl_mpls_policy,
+	},
+	//add by here for create the new tunnel interface
+	{
+		.cmd		= MPLS_CMD_ADDTUNNEL,
+		.doit		= genl_mpls_tunnel_add,
+		.policy		= genl_mpls_policy,
+	}, 
+	{
+		.cmd		= MPLS_CMD_DELTUNNEL,
+		.doit		= genl_mpls_tunnel_del,
+		.policy		= genl_mpls_policy,
+	},
+	//end by here
 };
-static struct genl_ops genl_mpls_ilm_del_ops = {
-	.cmd		= MPLS_CMD_DELILM,
-	.doit		= genl_mpls_ilm_del,
-	.policy		= genl_mpls_policy,
-};
-static struct genl_ops genl_mpls_ilm_get_ops = {
-	.cmd		= MPLS_CMD_GETILM,
-	.doit		= genl_mpls_ilm_get,
-	.dumpit		= genl_mpls_ilm_dump,
-	.policy		= genl_mpls_policy,
-};
-
-static struct genl_ops genl_mpls_nhlfe_new_ops = {
-	.cmd		= MPLS_CMD_NEWNHLFE,
-	.doit		= genl_mpls_nhlfe_new,
-	.policy		= genl_mpls_policy,
-};
-static struct genl_ops genl_mpls_nhlfe_del_ops = {
-	.cmd		= MPLS_CMD_DELNHLFE,
-	.doit		= genl_mpls_nhlfe_del,
-	.policy		= genl_mpls_policy,
-};
-static struct genl_ops genl_mpls_nhlfe_get_ops = {
-	.cmd		= MPLS_CMD_GETNHLFE,
-	.doit		= genl_mpls_nhlfe_get,
-	.dumpit		= genl_mpls_nhlfe_dump,
-	.policy		= genl_mpls_policy,
-};
-
-static struct genl_ops genl_mpls_xc_new_ops = {
-	.cmd		= MPLS_CMD_NEWXC,
-	.doit		= genl_mpls_xc_new,
-	.policy		= genl_mpls_policy,
-};
-static struct genl_ops genl_mpls_xc_del_ops = {
-	.cmd		= MPLS_CMD_DELXC,
-	.doit		= genl_mpls_xc_del,
-	.policy		= genl_mpls_policy,
-};
-static struct genl_ops genl_mpls_xc_get_ops = {
-	.cmd		= MPLS_CMD_GETXC,
-	.doit		= genl_mpls_xc_get,
-	.dumpit		= genl_mpls_xc_dump,
-	.policy		= genl_mpls_policy,
-};
-
-static struct genl_ops genl_mpls_labelspace_set_ops = {
-	.cmd		= MPLS_CMD_SETLABELSPACE,
-	.doit		= genl_mpls_labelspace_set,
-	.policy		= genl_mpls_policy,
-};
-static struct genl_ops genl_mpls_labelspace_get_ops = {
-	.cmd		= MPLS_CMD_GETLABELSPACE,
-	.doit		= genl_mpls_labelspace_get,
-	.dumpit		= genl_mpls_labelspace_dump,
-	.policy		= genl_mpls_policy,
-};
-//add by here for create the new tunnel interface
-static struct genl_ops genl_mpls_tunnel_add_ops = {
-	.cmd		= MPLS_CMD_ADDTUNNEL,
-	.doit		= genl_mpls_tunnel_add,
-	.policy		= genl_mpls_policy,
-}; 
-static struct genl_ops genl_mpls_tunnel_del_ops = {
-	.cmd		= MPLS_CMD_DELTUNNEL,
-	.doit		= genl_mpls_tunnel_del,
-	.policy		= genl_mpls_policy,
-}; 
-//end by here
 
 int __init mpls_netlink_init(void)
 {
 	int err;
 
-	err = genl_register_family(&genl_mpls);
-
-	/*err += genl_register_family_with_ops_groups(&genl_mpls, &genl_mpls_ilm_new_ops, genl_mpls);
-	err += genl_register_family_with_ops_groups(&genl_mpls, &genl_mpls_ilm_del_ops, genl_mpls);
-	err += genl_register_family_with_ops_groups(&genl_mpls, &genl_mpls_ilm_get_ops, genl_mpls);
-
-	err += genl_register_family_with_ops_groups(&genl_mpls, &genl_mpls_nhlfe_new_ops, genl_mpls);
-	err += genl_register_family_with_ops_groups(&genl_mpls, &genl_mpls_nhlfe_del_ops, genl_mpls);
-	err += genl_register_family_with_ops_groups(&genl_mpls, &genl_mpls_nhlfe_get_ops, genl_mpls);
-
-	err += genl_register_family_with_ops_groups(&genl_mpls, &genl_mpls_xc_new_ops, genl_mpls);
-	err += genl_register_family_with_ops_groups(&genl_mpls, &genl_mpls_xc_del_ops, genl_mpls);
-	err += genl_register_family_with_ops_groups(&genl_mpls, &genl_mpls_xc_get_ops, genl_mpls);
-
-	err += genl_register_family_with_ops_groups(&genl_mpls, &genl_mpls_labelspace_set_ops, genl_mpls);
-	err += genl_register_family_with_ops_groups(&genl_mpls, &genl_mpls_labelspace_get_ops, genl_mpls);
-
+	err = genl_register_family_with_ops_groups(&genl_mpls, mpls_genl_ops, mpls_gnl_mcgrps);
 	if (err) {
 		printk(MPLS_ERR "MPLS: failed to register with genetlink\n");
 		return -EINVAL;
 	}
 
-	//add by here for create the tunnel interface
-	err += genl_register_family_with_ops_groups(&genl_mpls, &genl_mpls_tunnel_add_ops, genl_mpls);
-	err += genl_register_family_with_ops_groups(&genl_mpls, &genl_mpls_tunnel_del_ops, genl_mpls)*/;
-	if (err < 0)
-		goto errout_register_5;
-	//end by here
-
 	return 0;
 
 errout_register_5:
-	/*genl_unregister_ops(&genl_mpls, &genl_mpls_tunnel_add_ops);
-	genl_unregister_ops(&genl_mpls, &genl_mpls_tunnel_del_ops);*/
-	genl_unregister_family(&genl_mpls);
+	//genl_unregister_family(&genl_mpls);
 	printk(MPLS_ERR "MPLS: failed to register with genetlink\n");
 	return -EINVAL;
 }
 
 void __exit mpls_netlink_exit(void)
 {
-	/*//add by here for create the tunnel interface
-	genl_unregister_ops(&genl_mpls, &genl_mpls_tunnel_add_ops);
-	//add by here for create the tunnel interface
-	genl_unregister_ops(&genl_mpls, &genl_mpls_tunnel_del_ops);
-
-	genl_unregister_ops(&genl_mpls, &genl_mpls_labelspace_get_ops);
-	genl_unregister_ops(&genl_mpls, &genl_mpls_labelspace_set_ops);
-
-	genl_unregister_ops(&genl_mpls, &genl_mpls_xc_del_ops);
-	genl_unregister_ops(&genl_mpls, &genl_mpls_xc_new_ops);
-	genl_unregister_ops(&genl_mpls, &genl_mpls_xc_get_ops);
-
-	genl_unregister_ops(&genl_mpls, &genl_mpls_nhlfe_del_ops);
-	genl_unregister_ops(&genl_mpls, &genl_mpls_nhlfe_new_ops);
-	genl_unregister_ops(&genl_mpls, &genl_mpls_nhlfe_get_ops);
-
-	genl_unregister_ops(&genl_mpls, &genl_mpls_ilm_del_ops);
-	genl_unregister_ops(&genl_mpls, &genl_mpls_ilm_new_ops);
-	genl_unregister_ops(&genl_mpls, &genl_mpls_ilm_get_ops);*/
-
 	genl_unregister_family(&genl_mpls);
 }

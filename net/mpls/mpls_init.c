@@ -224,6 +224,8 @@ mpls_init_module (void)
 
 	/*add by here */
 	mpls_interrupt =  mpls_regular_interrupt;
+	
+	printk("MPLS init done!!");
 
 	return 0;
 }
