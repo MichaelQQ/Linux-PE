@@ -195,34 +195,34 @@ mpls_init_module (void)
 	/* Init Output Radix Tree */
 	if ((err = mpls_nhlfe_init()))
 		return err;
-	/* Init MPLS Destination Cache Management */
+	// Init MPLS Destination Cache Management 
 	if ((err = mpls_dst_init()))
 		return err;
-#ifdef CONFIG_PROC_FS
-	/* MPLS ProcFS Subsystem */
+/*#ifdef CONFIG_PROC_FS
+	// MPLS ProcFS Subsystem 
 	if ((err = mpls_procfs_init()))
 		return err;
 #endif
 #ifdef CONFIG_SYSCTL
 	//if ((err = mpls_sysctl_init()))
 	//	return err;
-#endif
-	/* Netlink configuration interface */
+#endif*/
+	// Netlink configuration interface 
 	if ((err = mpls_netlink_init()))
 		return err;
 
-	/* register shim protocol */
+	// register shim protocol 
 	mpls_shim_init();
 
-	/* Layer 3 protocol driver initialization */
+	// Layer 3 protocol driver initialization 
 	mpls_proto_init();
 
-	/* packet handlers, and netdev notifier */
+	// packet handlers, and netdev notifier 
 	dev_add_pack(&mpls_uc_packet_type);
 	dev_add_pack(&mpls_mc_packet_type);
 	register_netdevice_notifier(&mpls_netdev_notifier);
 
-	/*add by here */
+	// add by here 
 	mpls_interrupt =  mpls_regular_interrupt;
 	
 	printk("MPLS init done!!");
@@ -246,12 +246,12 @@ mpls_exit_module (void)
 	mpls_shim_exit();
 	mpls_proto_exit();
 	mpls_netlink_exit();
-#ifdef CONFIG_SYSCTL
+/*#ifdef CONFIG_SYSCTL
 	mpls_sysctl_exit();
 #endif
 #ifdef CONFIG_PROC_FS
 	mpls_procfs_exit();
-#endif
+#endif*/
 	mpls_dst_exit();
 	mpls_nhlfe_exit();
 	mpls_ilm_exit();

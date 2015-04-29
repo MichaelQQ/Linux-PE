@@ -124,9 +124,9 @@ static struct file_operations mpls_seq_fops = {
 	.release = seq_release,
 };
 
-int __init mpls_procfs_init(void)
+static __net_init int mpls_procfs_init(struct net *net)
 {
-	if (!proc_create("mpls",  S_IRUGO, &init_net,
+	if (!proc_create("mpls",  S_IRUGO, net->proc_net,
 				  &mpls_seq_fops)) {
 		printk(MPLS_ERR "MPLS: failed to register with procfs\n");
 		return -ENOMEM;
@@ -134,7 +134,7 @@ int __init mpls_procfs_init(void)
 	return 0;
 }
 
-void __exit mpls_procfs_exit(void)
+static __net_exit void mpls_procfs_exit(struct net *net)
 {
-	remove_proc_entry("mpls", &init_net);
+	remove_proc_entry("mpls", net->proc_net);
 }

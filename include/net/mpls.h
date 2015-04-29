@@ -660,8 +660,8 @@ void  mpls_sysctl_exit(void);
  * net/mpls/mpls_procfs.c
  ****************************************************************************/
 
-int   mpls_procfs_init(void);
-void  mpls_procfs_exit(void);
+//int   mpls_procfs_init(void);
+//void  mpls_procfs_exit(void);
 
 /****************************************************************************
  * Shim Implementation
