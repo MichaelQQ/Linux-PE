@@ -176,6 +176,14 @@ config NF_NAT_IPV4
 
 	  To compile it as a module, choose M here.  If unsure, say N.
 
+config IP_NF_TARGET_MPLS
+        tristate "MPLS target support"
+        depends on IP_NF_IPTABLES && MPLS
+        help
+          This option allow for mapping IPv4 packets to a MPLS LSP
+
+          To compile it as a module, choose M here.  If unsure, say N.
+
 if NF_NAT_IPV4
 
 config IP_NF_TARGET_MASQUERADE

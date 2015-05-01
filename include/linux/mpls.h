@@ -138,6 +138,14 @@ struct mpls_out_label_req {
 	unsigned char     mol_change_flag;
 };
 
+struct mpls_netfilter_target_info {
+        u_int32_t key;
+
+        /* only used by the netfilter kernel modules */
+        void *nhlfe;
+        void *proto;
+};
+
 struct mpls_xconnect_req {
 	struct mpls_label mx_in;
 	struct mpls_label mx_out;
