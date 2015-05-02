@@ -116,7 +116,7 @@ mpls_send (struct sk_buff *skb, int mtu)
 
 	if(n) {
 		MPLS_DEBUG("using neighbour (%p)\n",skb);
-		n->output(n, skb);
+	//	n->output(n, skb);
 	} else {
 		MPLS_DEBUG("no hh no neighbor!?\n");
 		dst_output(skb);
@@ -168,10 +168,9 @@ mpls_output2_start:
 	nhlfe->nhlfe_stats.packets++;
 	nhlfe->nhlfe_stats.bytes += skb->len;
 
-	if(!nhlfe->nhlfe_instr){
-		MPLS_DEBUG("!nhlfe->nhlfe_instr\n");
+	if(!nhlfe->nhlfe_instr)
 		goto mpls_output2_drop;
-	}
+	
 
 	// Iterate all the opcodes for this NHLFE 
 	for (mi = nhlfe->nhlfe_instr; mi; mi = mi->mi_next) {
