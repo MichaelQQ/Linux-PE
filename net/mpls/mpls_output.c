@@ -48,7 +48,7 @@ mpls_send (struct sk_buff *skb, int mtu)
 {
 	int retval = MPLS_RESULT_SUCCESS;
 	struct mpls_prot_driver *prot = MPLSCB(skb)->prot;
-	struct neighbour *n;
+	struct neighbour *n = NULL;
 
 	if (MPLSCB(skb)->popped_bos) {
 		if (MPLSCB(skb)->ttl < MPLSCB(skb)->prot->get_ttl(skb)) {
@@ -57,9 +57,11 @@ mpls_send (struct sk_buff *skb, int mtu)
 		switch(prot->family) {
 			case AF_INET:
 				skb->protocol = htons(ETH_P_IP);
+				n = dst_neigh_lookup(skb_dst(skb), &ip_hdr(skb)->daddr);
 				break;
 			case AF_INET6:
 				skb->protocol = htons(ETH_P_IPV6);
+				n = dst_neigh_lookup(skb_dst(skb), &ipv6_hdr(skb)->daddr);
 				break;
 			case AF_PACKET:
 				skb->protocol = 0;
@@ -112,14 +114,15 @@ mpls_send (struct sk_buff *skb, int mtu)
 		skb = skb2;
         }
 
-        n = dst_neigh_lookup(skb_dst(skb), &ip_hdr(skb)->daddr);
 	if(n) {
 		MPLS_DEBUG("using neighbour (%p)\n",skb);
 		n->output(n, skb);
 	} else {
 		MPLS_DEBUG("no hh no neighbor!?\n");
+		dst_output(skb);
 		retval = MPLS_RESULT_DROP;
 	}
+	dst_output(skb);
 mpls_send_exit:
 	MPLS_DEBUG("mpls_send result %d\n",retval);
 	return retval;
@@ -159,21 +162,27 @@ int mpls_output2 (struct sk_buff *skb,struct mpls_nhlfe *nhlfe)
 		goto mpls_output2_drop;
 	}
 
-/* Support of rec. output */
+// Support of rec. output 
 mpls_output2_start:
 	ready_to_tx = 0;
 	nhlfe->nhlfe_stats.packets++;
 	nhlfe->nhlfe_stats.bytes += skb->len;
 
-	/* Iterate all the opcodes for this NHLFE */
+	if(!nhlfe->nhlfe_instr){
+		MPLS_DEBUG("!nhlfe->nhlfe_instr\n");
+		goto mpls_output2_drop;
+	}
+
+	// Iterate all the opcodes for this NHLFE 
 	for (mi = nhlfe->nhlfe_instr; mi; mi = mi->mi_next) {
 		int opcode = mi->mi_opcode;
 		void* data = mi->mi_data;
 		char* msg  = mpls_ops[opcode].msg;
 		MPLS_DEBUG("opcode %s\n",msg);
 
-		if (mpls_ops[opcode].extra) 
+		if (mpls_ops[opcode].extra) {
 			ready_to_tx = 1;
+		}
 
 		if ((func = mpls_ops[opcode].out)) {
 			switch ( func (&skb,NULL,&nhlfe,data)) {
@@ -189,16 +198,16 @@ mpls_output2_start:
 		}
 	}
 
-	/* 
-	 * The control plane should have let the opcodes in a coherent
-	 * state. The last one should have enabled tx. 
-	 */
+	// 
+	// The control plane should have let the opcodes in a coherent
+	// state. The last one should have enabled tx. 
+	//
 	if (!ready_to_tx) 
 		goto mpls_output2_drop;
 
-	/*
-	 * Actually do the forwarding
-	 */
+	//
+	// Actually do the forwarding
+	//
 	result = mpls_send (skb, mtu);
 	
 	if (result != MPLS_RESULT_SUCCESS)

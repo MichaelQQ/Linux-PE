@@ -49,6 +49,7 @@
 #include <net/net_namespace.h>
 #include <net/mpls.h>
 #include <linux/genetlink.h>
+#include <linux/module.h>
 
 /**
  * MODULE Information and attributes
@@ -181,7 +182,8 @@ mpls_tunnel_destructor (struct net_device *dev)
  *	the device
  **/
 
-static int 
+//static int 
+int
 mpls_tunnel_xmit (struct sk_buff *skb, struct net_device *dev) 
 {
 	const char *err_nonhlfe = "NHLFE was invalid";
@@ -386,10 +388,10 @@ mpls_tunnel_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
 			break;
 
 		/*create new tunnel interface*/
-		case SIOCDEVPRIVATE + 2:
+		/*case (SIOCDEVPRIVATE + 2):
 			MPLS_DEBUG("Create new tunnel interface.\n");
 			break;
-
+*/
 		default:
 			retval = -EINVAL;
 	}
@@ -538,7 +540,7 @@ mpls_tunnel_add (struct mpls_tunnel_req  *req)
 {
 
 	int result = -EINVAL;
-	struct net_device *dev = __dev_get_by_name (req->mt_ifname);
+	struct net_device *dev = __dev_get_by_name (&init_net, req->mt_ifname);
 	if (dev) {
 		result = __mpls_tunnel_add (dev);
 		dev_put (dev);

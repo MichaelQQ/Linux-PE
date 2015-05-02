@@ -449,6 +449,7 @@ mpls_add_out_label (struct mpls_out_label_req *out, int seq, int pid)
 	out->mol_label.u.ml_key = key;
 
 error:
+	MPLS_DEBUG("Exit: %d\n", retval);
 	MPLS_EXIT;
 
 	return retval; 

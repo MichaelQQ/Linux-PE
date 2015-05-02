@@ -36,6 +36,7 @@ extern struct list_head mpls_nhlfe_list;
 static struct genl_family genl_mpls = {
 	.id = PF_MPLS,
 	.name = "nlmpls",
+	.hdrsize = 0,
 	.version = 0x1,
 	.maxattr = MPLS_ATTR_MAX,
 };
@@ -106,7 +107,7 @@ void mpls_ilm_event(int event, struct mpls_ilm *ilm)
 		MPLS_DEBUG("Exit: EINVAL\n");
 		return;
 	}
-	genlmsg_multicast(&genl_mpls, skb, 0, MPLS_GRP_ILM, GFP_KERNEL);
+	genlmsg_multicast(&genl_mpls, skb, 0, 0, GFP_KERNEL);
 	MPLS_EXIT;
 }
 
@@ -287,7 +288,7 @@ void mpls_nhlfe_event(int event, struct mpls_nhlfe *nhlfe, int seq, int pid)
 		MPLS_DEBUG("Exit: EINVAL\n");
 		return;
 	}
-	genlmsg_multicast(&genl_mpls, skb, 0, MPLS_GRP_NHLFE, GFP_KERNEL);
+	genlmsg_multicast(&genl_mpls, skb, 0, 0, GFP_KERNEL);
 	MPLS_EXIT;
 }
 
@@ -431,10 +432,10 @@ static int mpls_fill_xc(struct sk_buff *skb, struct mpls_ilm *ilm,
 	MPLS_DEBUG("Exit: length\n");
 	return genlmsg_end(skb, hdr);
 
-nla_put_failure:
+/*nla_put_failure:
 	genlmsg_cancel(skb, hdr);
 	MPLS_DEBUG("Exit: -1\n");
-	return -ENOMEM;
+	return -ENOMEM;*/
 }
 
 void mpls_xc_event(int event, struct mpls_ilm *ilm,
@@ -456,7 +457,7 @@ void mpls_xc_event(int event, struct mpls_ilm *ilm,
 		MPLS_DEBUG("Exit: EINVAL\n");
 		return;
 	}
-	genlmsg_multicast(&genl_mpls, skb, 0, MPLS_GRP_XC, GFP_KERNEL);
+	genlmsg_multicast(&genl_mpls, skb, 0, 0, GFP_KERNEL);
 	MPLS_EXIT;
 }
 
@@ -596,10 +597,10 @@ static int mpls_fill_labelspace(struct sk_buff *skb, struct net_device *dev,
 	MPLS_DEBUG("Exit: length\n");
 	return genlmsg_end(skb, hdr);
 
-nla_put_failure:
+/*nla_put_failure:
 	genlmsg_cancel(skb, hdr);
 	MPLS_DEBUG("Exit: -1\n");
-	return -ENOMEM;
+	return -ENOMEM;*/
 }
 
 void mpls_labelspace_event(int event, struct net_device *dev)
@@ -620,7 +621,7 @@ void mpls_labelspace_event(int event, struct net_device *dev)
 		MPLS_DEBUG("Exit: EINVAL\n");
 		return;
 	}
-	genlmsg_multicast(&genl_mpls, skb, 0, MPLS_GRP_LABELSPACE, GFP_KERNEL);
+	genlmsg_multicast(&genl_mpls, skb, 0, 0, GFP_KERNEL);
 	MPLS_EXIT;
 }
 
@@ -719,10 +720,10 @@ static int mpls_fill_tunnel(struct sk_buff *skb,
 	MPLS_DEBUG("Exit: length\n");
 	return genlmsg_end(skb, hdr);
 
-nla_put_failure:
+/*nla_put_failure:
 	genlmsg_cancel(skb, hdr);
         MPLS_DEBUG("Exit: -1\n");
-        return -ENOMEM;
+        return -ENOMEM;*/
 }
 
 
@@ -745,7 +746,7 @@ void mpls_tunnel_event(int event)
 		MPLS_DEBUG("Exit: EINVAL\n");
 		return;
 	}
-	genlmsg_multicast(&genl_mpls, skb, 0, MPLS_GRP_TUNNEL, GFP_KERNEL);
+	genlmsg_multicast(&genl_mpls, skb, 0, 0, GFP_KERNEL);
 	MPLS_EXIT;
 }
 
@@ -867,10 +868,10 @@ int __init mpls_netlink_init(void)
 
 	return 0;
 
-errout_register_5:
+/*errout_register_5:
 	//genl_unregister_family(&genl_mpls);
 	printk(MPLS_ERR "MPLS: failed to register with genetlink\n");
-	return -EINVAL;
+	return -EINVAL;*/
 }
 
 void __exit mpls_netlink_exit(void)

@@ -32,6 +32,7 @@
 #include <linux/in.h>
 #include <linux/in6.h>
 #include <net/mpls.h>
+#include <net/arp.h>
 
 /* forward declarations */
 static struct dst_entry *mpls_dst_check(struct dst_entry *dst, u32 cookie);
@@ -181,12 +182,12 @@ mpls_dst_alloc ( struct net_device *dev, struct sockaddr *nh)
 	if (unlikely(!prot))
 		goto mpls_dst_alloc_2;
 
-	/* Allocate a MPLS dst entry */
+	// Allocate a MPLS dst entry 
 	md = dst_alloc (&mpls_dst_ops, dev, 0, DST_OBSOLETE_FORCE_CHK, 0);
 	if (unlikely(!md)) 
 		goto mpls_dst_alloc_1;
 
-	/* Hold it */
+	// Hold it 
 	dst_hold(&md->u.dst);
 
 	dev_hold(dev);
@@ -194,12 +195,13 @@ mpls_dst_alloc ( struct net_device *dev, struct sockaddr *nh)
 	md->u.dst.flags = DST_HOST;
 	//md->u.dst.hh    = NULL;
 
-	/* Set next hop MPLS attr */
+	// Set next hop MPLS attr 
 	memcpy(&md->md_nh,nh,sizeof(struct sockaddr));
 
-	/* use the protocol driver to resolve the neighbour */
-	if (prot->nexthop_resolve(NULL, nh, dev))
-		goto mpls_dst_alloc_0;
+	//n = dst_neigh_lookup(&md->u.dst, nh->sa_data);
+	// use the protocol driver to resolve the neighbour 
+	//if (prot->nexthop_resolve( &md->u.dst.neighbour, nh, dev))
+	//	goto mpls_dst_alloc_0;
 
 	mpls_proto_release(prot);
 
@@ -207,7 +209,7 @@ mpls_dst_alloc ( struct net_device *dev, struct sockaddr *nh)
 	return md;
 
 mpls_dst_alloc_0:
-	/* dst_release releases dev and neighbour */
+	// dst_release releases dev and neighbour 
 	dst_release(&md->u.dst);
 	dst_free(&md->u.dst);
 
