@@ -57,11 +57,9 @@ mpls_send (struct sk_buff *skb, int mtu)
 		switch(prot->family) {
 			case AF_INET:
 				skb->protocol = htons(ETH_P_IP);
-				n = dst_neigh_lookup(skb_dst(skb), &ip_hdr(skb)->daddr);
 				break;
 			case AF_INET6:
 				skb->protocol = htons(ETH_P_IPV6);
-				n = dst_neigh_lookup(skb_dst(skb), &ipv6_hdr(skb)->daddr);
 				break;
 			case AF_PACKET:
 				skb->protocol = 0;
@@ -114,15 +112,23 @@ mpls_send (struct sk_buff *skb, int mtu)
 		skb = skb2;
         }
 
+        printk("gap = %u\n",MPLSCB(skb)->gap);
+        printk("label = %u\n",MPLSCB(skb)->label);
+        printk("ttl = %u\n",MPLSCB(skb)->ttl);
+        printk("exp = %u\n",MPLSCB(skb)->exp);
+        printk("bos = %u\n",MPLSCB(skb)->bos);
+        printk("flag = %d\n",MPLSCB(skb)->flag);
+        printk("popped_bos = %d\n",MPLSCB(skb)->popped_bos);
+
+	skb_dst(skb)->dev->netdev_ops->ndo_start_xmit(skb,skb_dst(skb)->dev);
+	/*
 	if(n) {
 		MPLS_DEBUG("using neighbour (%p)\n",skb);
-	//	n->output(n, skb);
+		//n->output(n, skb);
 	} else {
 		MPLS_DEBUG("no hh no neighbor!?\n");
-		dst_output(skb);
 		retval = MPLS_RESULT_DROP;
-	}
-	dst_output(skb);
+	}*/
 mpls_send_exit:
 	MPLS_DEBUG("mpls_send result %d\n",retval);
 	return retval;

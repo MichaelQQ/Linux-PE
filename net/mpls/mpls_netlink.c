@@ -315,7 +315,7 @@ static int genl_mpls_nhlfe_new(struct sk_buff *skb, struct genl_info *info)
 			retval = -EINVAL;
 		else {
 			retval = mpls_add_out_label(mol, info->snd_seq,
-				info->snd_portid);
+				info->snd_portid, skb->dev);
 		}
 	} else {
 		retval = 0;

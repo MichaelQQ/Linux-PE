@@ -183,7 +183,7 @@ mpls_dst_alloc ( struct net_device *dev, struct sockaddr *nh)
 		goto mpls_dst_alloc_2;
 
 	// Allocate a MPLS dst entry 
-	md = dst_alloc (&mpls_dst_ops, dev, 0, DST_OBSOLETE_FORCE_CHK, 0);
+	md = dst_alloc (&mpls_dst_ops, dev, 1, DST_OBSOLETE_FORCE_CHK, 0);
 	if (unlikely(!md)) 
 		goto mpls_dst_alloc_1;
 

@@ -564,7 +564,7 @@ struct mpls_ilm* mpls_del_reserved_label (int label);
 
 /* Query/Update Outgoing Labels */
 extern int mpls_add_out_label     (struct mpls_out_label_req *out, int seq,
-				   int pid);
+				   int pid, struct net_device *dev);
 int mpls_get_out_label     (struct mpls_out_label_req *out);
 int mpls_del_out_label     (struct mpls_out_label_req *out);
 int mpls_set_out_label_mtu (struct mpls_out_label_req *out);

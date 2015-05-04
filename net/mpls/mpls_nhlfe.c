@@ -130,7 +130,7 @@ nhlfe_dst_alloc(unsigned int key, struct net_device *dev, int flags)
 
 	MPLS_ENTER;
 
-	nhlfe = dst_alloc (&nhlfe_dst_ops, dev, 0, DST_OBSOLETE_FORCE_CHK, flags);
+	nhlfe = dst_alloc (&nhlfe_dst_ops, dev, 1, DST_OBSOLETE_FORCE_CHK, flags);
 	if (unlikely(!nhlfe))
 		goto nhlfe_dst_alloc_0;
 
@@ -154,7 +154,7 @@ nhlfe_dst_alloc(unsigned int key, struct net_device *dev, int flags)
 
 /* Error Path */
 nhlfe_dst_alloc_0:
-	MPLS_EXIT;
+	MPLS_DEBUG("Exit: -1\n");
 	return NULL;
 }
 
@@ -386,7 +386,7 @@ mpls_set_out_label_propagate_ttl(struct mpls_out_label_req *mol)
  **/
 
 int 
-mpls_add_out_label (struct mpls_out_label_req *out, int seq, int pid) 
+mpls_add_out_label (struct mpls_out_label_req *out, int seq, int pid, struct net_device *dev) 
 {
 	struct mpls_nhlfe *nhlfe = NULL; 
 	unsigned int key	  = 0;
@@ -416,7 +416,7 @@ mpls_add_out_label (struct mpls_out_label_req *out, int seq, int pid)
 	/* 
 	 * Allocate a new Output Information/Label,
 	 */
-	nhlfe = nhlfe_dst_alloc (key, NULL, 0);
+	nhlfe = nhlfe_dst_alloc (key, dev, 0);
 	if (unlikely(!nhlfe)) {
 		retval = -ENOMEM;
 		goto error;
