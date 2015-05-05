@@ -350,9 +350,11 @@ int br_add_if(struct net_bridge *br, struct net_device *dev)
 	memcpy(tunnel_addr,dev->dev_addr,ETH_ALEN);//add by here
 
 	/* Don't allow bridging non-ethernet like devices */
-	if ((dev->flags & IFF_LOOPBACK) ||
+	/*if ((dev->flags & IFF_LOOPBACK) ||
 	    dev->type != ARPHRD_ETHER || dev->addr_len != ETH_ALEN ||
 	    !is_valid_ether_addr(dev->dev_addr))
+		return -EINVAL;*/
+	if (dev->flags & IFF_LOOPBACK)
 		return -EINVAL;
 
 	/* No bridging of bridges */

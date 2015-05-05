@@ -669,9 +669,10 @@ struct net_device *__dev_get_by_name(struct net *net, const char *name)
 	struct net_device *dev;
 	struct hlist_head *head = dev_name_hash(net, name);
 
-	hlist_for_each_entry(dev, head, name_hlist)
+	hlist_for_each_entry(dev, head, name_hlist){
 		if (!strncmp(dev->name, name, IFNAMSIZ))
 			return dev;
+	}
 
 	return NULL;
 }
@@ -694,9 +695,10 @@ struct net_device *dev_get_by_name_rcu(struct net *net, const char *name)
 	struct net_device *dev;
 	struct hlist_head *head = dev_name_hash(net, name);
 
-	hlist_for_each_entry_rcu(dev, head, name_hlist)
+	hlist_for_each_entry_rcu(dev, head, name_hlist){
 		if (!strncmp(dev->name, name, IFNAMSIZ))
 			return dev;
+	}
 
 	return NULL;
 }
@@ -744,9 +746,11 @@ struct net_device *__dev_get_by_index(struct net *net, int ifindex)
 	struct net_device *dev;
 	struct hlist_head *head = dev_index_hash(net, ifindex);
 
-	hlist_for_each_entry(dev, head, index_hlist)
-		if (dev->ifindex == ifindex)
+	hlist_for_each_entry(dev, head, index_hlist){
+		if (dev->ifindex == ifindex){
 			return dev;
+		}
+	}
 
 	return NULL;
 }
@@ -768,9 +772,11 @@ struct net_device *dev_get_by_index_rcu(struct net *net, int ifindex)
 	struct net_device *dev;
 	struct hlist_head *head = dev_index_hash(net, ifindex);
 
-	hlist_for_each_entry_rcu(dev, head, index_hlist)
-		if (dev->ifindex == ifindex)
+	hlist_for_each_entry_rcu(dev, head, index_hlist){
+		if (dev->ifindex == ifindex){
 			return dev;
+		}
+	}
 
 	return NULL;
 }

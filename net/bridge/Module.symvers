@@ -1,0 +1,4 @@
+0x1ccb54eb	ebt_unregister_table	net/bridge/netfilter/ebtables	EXPORT_SYMBOL
+0xbb2b78ac	ebt_register_table	net/bridge/netfilter/ebtables	EXPORT_SYMBOL
+0x848f8a83	br_should_route_hook	net/bridge/bridge	EXPORT_SYMBOL
+0x4bb12425	ebt_do_table	net/bridge/netfilter/ebtables	EXPORT_SYMBOL

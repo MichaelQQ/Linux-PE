@@ -117,7 +117,7 @@ static int add_del_if(struct net_bridge *br, int ifindex, int isadd)
 	if (!ns_capable(net->user_ns, CAP_NET_ADMIN))
 		return -EPERM;
 
-	dev = __dev_get_by_index(net, ifindex);
+	dev = dev_get_by_index(net, ifindex);
 	if (dev == NULL)
 		return -EINVAL;
 
