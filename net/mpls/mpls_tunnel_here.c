@@ -595,6 +595,7 @@ mpls_tunnel_xmit (struct sk_buff *skb, struct net_device *dev)
 	struct mpls_tunnel_private *priv = netdev_priv(dev);
 	struct dst_entry *dst = (struct dst_entry*)skb->_skb_refdst;
 	
+	
 	MPLS_ENTER;
 	MPLSCB(skb)->label = 0;
 	MPLSCB(skb)->ttl = 255;
