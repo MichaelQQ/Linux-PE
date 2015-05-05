@@ -198,7 +198,6 @@ mpls_dst_alloc ( struct net_device *dev, struct sockaddr *nh)
 	// Set next hop MPLS attr 
 	memcpy(&md->md_nh,nh,sizeof(struct sockaddr));
 
-	//n = dst_neigh_lookup(&md->u.dst, nh->sa_data);
 	// use the protocol driver to resolve the neighbour 
 	//if (prot->nexthop_resolve( &md->u.dst.neighbour, nh, dev))
 	//	goto mpls_dst_alloc_0;

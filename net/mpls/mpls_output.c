@@ -46,11 +46,14 @@
  **/
 
 static int 
-mpls_send (struct sk_buff *skb, int mtu, u32 nexthop) 
+mpls_send (struct sk_buff *skb, int mtu, struct sockaddr *sock_addr) 
 {
 	int retval = MPLS_RESULT_SUCCESS;
 	struct mpls_prot_driver *prot = MPLSCB(skb)->prot;
-	struct neighbour *neigh = NULL;
+	struct mpls_prot_driver *prot2 = mpls_proto_find_by_family(sock_addr->sa_family);
+	struct neighbour *neigh;
+
+
 
 	if (MPLSCB(skb)->popped_bos) {
 		if (MPLSCB(skb)->ttl < MPLSCB(skb)->prot->get_ttl(skb)) {
@@ -114,27 +117,20 @@ mpls_send (struct sk_buff *skb, int mtu, u32 nexthop)
 		skb = skb2;
         }
 
-	skb_dst(skb)->output(skb);
+	if(sock_addr != NULL){
+		prot2->nexthop_resolve(&neigh, sock_addr, skb->dev);
+	}
+	else{
+		MPLS_DEBUG("sock_addr = NULL\n");
+	}
 
-	rcu_read_lock_bh();
-        neigh = __ipv4_neigh_lookup_noref(skb->dev, nexthop);
-        if (unlikely(!neigh))
-                neigh = __neigh_create(&arp_tbl, &nexthop, skb->dev, false);
-        if (!IS_ERR(neigh)) {
-                int res = dst_neigh_output(skb_dst(skb), neigh, skb);
-
-                rcu_read_unlock_bh();
-                return res;
-        }
-        rcu_read_unlock_bh();
-	/*
-	if(n) {
-		MPLS_DEBUG("using neighbour (%p)\n",skb);
-		//n->output(n, skb);
+	if(neigh) {
+		MPLS_DEBUG("using neighbour (%p)\n", skb);
+		neigh->output(neigh, skb);
 	} else {
 		MPLS_DEBUG("no hh no neighbor!?\n");
 		retval = MPLS_RESULT_DROP;
-	}*/
+	}
 mpls_send_exit:
 	MPLS_DEBUG("mpls_send result %d\n",retval);
 	return retval;
@@ -155,7 +151,7 @@ int mpls_output2 (struct sk_buff *skb,struct mpls_nhlfe *nhlfe)
 	int result = 0;
 	int ready_to_tx = 0;
 	int mtu = nhlfe->nhlfe_mtu;
-	u32 nexthop;
+	struct sockaddr *sock_addr;
 
 	MPLS_OUT_OPCODE_PROTOTYPE(*func);
 
@@ -193,13 +189,12 @@ mpls_output2_start:
 		MPLS_DEBUG("opcode %s\n",msg);
 		
 		if(strcmp (msg, "SET") == 0){
-			MPLS_DEBUG("SET:::::\n",msg);
 			struct mpls_dst* mdst = (struct mpls_dst*) data;
-			struct sockaddr* sa = (struct sockaddr*) &mdst->md_nh;
-			struct sockaddr_in *sin = (struct sockaddr_in*) sa;
+			sock_addr= (struct sockaddr*) &mdst->md_nh;
+			//struct sockaddr_in *sin = (struct sockaddr_in*) sock_addr;
 
-			nexthop = (__force u32)sin->sin_addr.s_addr;
-			MPLS_DEBUG("===== %0x\n", nexthop);
+			//u32 nexthop = (__force u32)sin->sin_addr.s_addr;
+			//MPLS_DEBUG("===== %0x\n", nexthop);
 		}
 
 		if (mpls_ops[opcode].extra) {
@@ -230,7 +225,7 @@ mpls_output2_start:
 	//
 	// Actually do the forwarding
 	//
-	result = mpls_send (skb, mtu, nexthop);
+	result = mpls_send (skb, mtu, sock_addr);
 	
 	if (result != MPLS_RESULT_SUCCESS)
 		goto mpls_output2_drop;
