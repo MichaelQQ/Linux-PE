@@ -1130,6 +1130,8 @@ int neigh_update(struct neighbour *neigh, const u8 *lladdr, u8 new,
 		neigh->confirmed = jiffies;
 	neigh->updated = jiffies;
 
+
+
 	/* If entry was valid and address is not changed,
 	   do not change entry state, if new one is STALE.
 	 */
@@ -1152,6 +1154,8 @@ int neigh_update(struct neighbour *neigh, const u8 *lladdr, u8 new,
 				new = old;
 		}
 	}
+	
+
 
 	if (new != old) {
 		neigh_del_timer(neigh);
@@ -1163,6 +1167,7 @@ int neigh_update(struct neighbour *neigh, const u8 *lladdr, u8 new,
 		neigh->nud_state = new;
 		notify = 1;
 	}
+	
 
 	if (lladdr != neigh->ha) {
 		write_seqlock(&neigh->ha_lock);
@@ -1180,6 +1185,8 @@ int neigh_update(struct neighbour *neigh, const u8 *lladdr, u8 new,
 		neigh_connect(neigh);
 	else
 		neigh_suspect(neigh);
+
+
 	if (!(old & NUD_VALID)) {
 		struct sk_buff *skb;
 
@@ -1190,6 +1197,8 @@ int neigh_update(struct neighbour *neigh, const u8 *lladdr, u8 new,
 			struct dst_entry *dst = skb_dst(skb);
 			struct neighbour *n2, *n1 = neigh;
 			write_unlock_bh(&neigh->lock);
+			printk("neighbour_update Error=========================\n");
+			return -1;
 
 			rcu_read_lock();
 
@@ -1206,7 +1215,6 @@ int neigh_update(struct neighbour *neigh, const u8 *lladdr, u8 new,
 				if (n2)
 					n1 = n2;
 			}
-			n1->output(n1, skb);
 			if (n2)
 				neigh_release(n2);
 			rcu_read_unlock();
