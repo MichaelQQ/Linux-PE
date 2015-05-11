@@ -129,7 +129,7 @@ mpls_ilm_dst_alloc(unsigned int key, struct mpls_label *ml,
 
 	MPLS_ENTER;
 
-	ilm = dst_alloc (&ilm_dst_ops, dev, 1, DST_OBSOLETE_FORCE_CHK, flags);
+	ilm = dst_alloc (&ilm_dst_ops, dev, 0, DST_OBSOLETE_FORCE_CHK, flags);
 	if (unlikely(!ilm))
 		goto ilm_dst_alloc_0;
 
