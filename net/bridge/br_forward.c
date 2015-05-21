@@ -67,6 +67,8 @@ int br_dev_queue_push_xmit(struct sk_buff *skb)
                          * we put the MPLS shim
                          */
                         skb_push(vpls_skb, sizeof(struct ethhdr));
+                        
+                        //skb_push(vpls_skb, vpls_skb->data - (vpls_skb->head + vpls_skb->mac_header));
 			vpls_skb->network_header = vpls_skb->mac_header;
                         //if(vpls_skb->input_dev->type==ARPHRD_MPLS_TUNNEL)
                                 //kfree_skb(vpls_skb);//If STP enable; this code should be marked. 

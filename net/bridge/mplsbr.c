@@ -27,7 +27,8 @@ static int dumb_neigh_dev_xmit(struct net *net, struct sk_buff *skb)
 	struct net_device *dev;
 	struct dst_entry *dst = (struct dst_entry*)skb->_skb_refdst;
 
-        dev = __dev_get_by_name(net, skb->dev->name);
+        //dev = __dev_get_by_name(net, skb->dev->name);
+        dev = __dev_get_by_name(&init_net, skb->dev->name);
         skb->dev = dst->dev;
         skb->ip_summed = CHECKSUM_NONE;
         mpls_re_tx(skb,dev);

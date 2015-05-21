@@ -269,7 +269,7 @@ mpls_exit_module (void)
  * variables controled via sysctl
  *
  **/
-int sysctl_mpls_debug = 0;
+int sysctl_mpls_debug = 1;
 int sysctl_mpls_default_ttl = 255;
 
 module_init(mpls_init_module);

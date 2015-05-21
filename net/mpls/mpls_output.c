@@ -50,7 +50,7 @@ mpls_send (struct sk_buff *skb, int mtu, struct sockaddr *sock_addr)
 {
 	int retval = MPLS_RESULT_SUCCESS;
 	struct mpls_prot_driver *prot = MPLSCB(skb)->prot;
-	struct mpls_prot_driver *prot2 = mpls_proto_find_by_family(sock_addr->sa_family);
+	struct mpls_prot_driver *prot2 = (sock_addr ? mpls_proto_find_by_family(sock_addr->sa_family) : NULL);
 	struct neighbour *neigh;
 
 
@@ -152,6 +152,7 @@ int mpls_output2 (struct sk_buff *skb,struct mpls_nhlfe *nhlfe)
 	int ready_to_tx = 0;
 	int mtu = nhlfe->nhlfe_mtu;
 	struct sockaddr *sock_addr;
+	struct mpls_dst* mdst;
 
 	MPLS_OUT_OPCODE_PROTOTYPE(*func);
 
@@ -186,15 +187,13 @@ mpls_output2_start:
 		int opcode = mi->mi_opcode;
 		void* data = mi->mi_data;
 		char* msg  = mpls_ops[opcode].msg;
-		MPLS_DEBUG("opcode %s\n",msg);
+		//MPLS_DEBUG("opcode %s\n",msg);
 		
 		if(strcmp (msg, "SET") == 0){
-			struct mpls_dst* mdst = (struct mpls_dst*) data;
-			sock_addr= (struct sockaddr*) &mdst->md_nh;
-			//struct sockaddr_in *sin = (struct sockaddr_in*) sock_addr;
-
-			//u32 nexthop = (__force u32)sin->sin_addr.s_addr;
-			//MPLS_DEBUG("===== %0x\n", nexthop);
+			mdst = (struct mpls_dst*) data;
+			if((struct sockaddr*) &mdst->md_nh == NULL)
+				goto mpls_output2_drop;
+            sock_addr = (struct sockaddr*) &mdst->md_nh;
 		}
 
 		if (mpls_ops[opcode].extra) {
