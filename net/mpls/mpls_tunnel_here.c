@@ -756,7 +756,7 @@ mpls_tunnel_setup (struct net_device *dev)
 	dev->mtu	     = 1500;
 	dev->flags	     = IFF_NOARP|IFF_POINTOPOINT;
 	dev->iflink	     = 0;
-	dev->addr_len	     = 4;
+	dev->addr_len	     = 6;
 	/*
 	if (use_napi) {
 		dev->poll        = mpls_poll;
