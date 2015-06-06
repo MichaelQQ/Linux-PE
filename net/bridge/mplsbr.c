@@ -164,6 +164,8 @@ static int __init mplsbr_init(void)
 
 static void __exit mplsbr_fini(void)
 {
+	printk("MPLS: Ethernet over MPLS UN-support\n");
+	neigh_table_clear(&dumb_tbl);
 	mpls_proto_remove(&mplsbr_driver);
 }
 
