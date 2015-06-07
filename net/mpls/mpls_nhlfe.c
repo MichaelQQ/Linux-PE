@@ -127,6 +127,7 @@ struct mpls_nhlfe*
 nhlfe_dst_alloc(unsigned int key, struct net_device *dev, int flags)
 {
 	struct mpls_nhlfe *nhlfe;
+	struct gnet_stats_basic stats;
 
 	MPLS_ENTER;
 
@@ -148,6 +149,11 @@ nhlfe_dst_alloc(unsigned int key, struct net_device *dev, int flags)
 	nhlfe->nhlfe_propagate_ttl	= 1;
 	nhlfe->nhlfe_age		= jiffies;
 	nhlfe->nhlfe_key		= key;
+
+	memset(&stats, 0, sizeof(stats));
+	stats.bytes = 0;
+	stats.packets = 0;
+	nhlfe->nhlfe_stats = stats;
 
 	MPLS_EXIT;
 	return nhlfe;

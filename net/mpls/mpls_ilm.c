@@ -125,6 +125,7 @@ mpls_ilm_dst_alloc(unsigned int key, struct mpls_label *ml,
 	struct net_device *dev, int flags)
 {
 	struct mpls_ilm *ilm;
+	struct gnet_stats_basic stats;
 	int result;
 
 	MPLS_ENTER;
@@ -144,6 +145,12 @@ mpls_ilm_dst_alloc(unsigned int key, struct mpls_label *ml,
 	ilm->ilm_age        = jiffies;
 	ilm->ilm_proto      = mpls_proto_find_by_family(family);
 	ilm->ilm_fix_hh     = 0;
+
+	memset(&stats, 0, sizeof(stats));
+	stats.bytes = 0;
+	stats.packets = 0;
+	ilm->ilm_stats = stats;
+
 	if (unlikely(!ilm->ilm_proto)) {
 		MPLS_DEBUG("Unable to find protocol driver for '0x%04x'\n",
 			family);

@@ -36,14 +36,14 @@ extern struct list_head mpls_nhlfe_list;
 static struct genl_family genl_mpls = {
 	.id = PF_MPLS,
 	.name = "nlmpls",
-	.hdrsize = 0,
+	//.hdrsize = 0,
 	.version = 0x1,
 	.maxattr = MPLS_ATTR_MAX,
 };
 
-static const struct genl_multicast_group mpls_gnl_mcgrps[] = {
+/*static const struct genl_multicast_group mpls_gnl_mcgrps[] = {
         { .name = "msg", },
-};
+};*/
 
 
 /* ILM netlink support */
@@ -55,6 +55,7 @@ static int mpls_fill_ilm(struct sk_buff *skb, struct mpls_ilm *ilm,
 	struct gnet_stats_basic stats;
 	struct mpls_instr_req *instr;
 	void *hdr;
+	int i=0;
 
 	MPLS_ENTER;
 
@@ -70,6 +71,10 @@ static int mpls_fill_ilm(struct sk_buff *skb, struct mpls_ilm *ilm,
 	instr->mir_direction = MPLS_IN;
 	memcpy(&stats, &ilm->ilm_stats, sizeof(stats));
 	/* need to add drops here some how */
+
+	for(i=0;i<instr->mir_instr_length;i++){
+		printk("instr: %d\n", ((struct mpls_instr_elem*) &(instr->mir_instr[i]))->mir_opcode);
+	}
 
 	nla_put(skb, MPLS_ATTR_ILM, sizeof(mil), &mil);
 	nla_put(skb, MPLS_ATTR_INSTR, sizeof(*instr), instr);
@@ -107,7 +112,7 @@ void mpls_ilm_event(int event, struct mpls_ilm *ilm)
 		MPLS_DEBUG("Exit: EINVAL\n");
 		return;
 	}
-	genlmsg_multicast(&genl_mpls, skb, 0, 0, GFP_KERNEL);
+	genlmsg_multicast(&genl_mpls, skb, 0, MPLS_GRP_ILM, GFP_KERNEL);
 	MPLS_EXIT;
 }
 
@@ -288,7 +293,8 @@ void mpls_nhlfe_event(int event, struct mpls_nhlfe *nhlfe, int seq, int pid)
 		MPLS_DEBUG("Exit: EINVAL\n");
 		return;
 	}
-	genlmsg_multicast(&genl_mpls, skb, 0, 0, GFP_KERNEL);
+	err = genlmsg_unicast(&init_net, skb, pid);
+	//genlmsg_multicast(&genl_mpls, skb, pid, MPLS_GRP_NHLFE, GFP_KERNEL);
 	MPLS_EXIT;
 }
 
@@ -457,7 +463,7 @@ void mpls_xc_event(int event, struct mpls_ilm *ilm,
 		MPLS_DEBUG("Exit: EINVAL\n");
 		return;
 	}
-	genlmsg_multicast(&genl_mpls, skb, 0, 0, GFP_KERNEL);
+	genlmsg_multicast(&genl_mpls, skb, 0, MPLS_GRP_XC, GFP_KERNEL);
 	MPLS_EXIT;
 }
 
@@ -621,7 +627,7 @@ void mpls_labelspace_event(int event, struct net_device *dev)
 		MPLS_DEBUG("Exit: EINVAL\n");
 		return;
 	}
-	genlmsg_multicast(&genl_mpls, skb, 0, 0, GFP_KERNEL);
+	genlmsg_multicast(&genl_mpls, skb, 0, MPLS_GRP_LABELSPACE, GFP_KERNEL);
 	MPLS_EXIT;
 }
 
@@ -746,7 +752,7 @@ void mpls_tunnel_event(int event)
 		MPLS_DEBUG("Exit: EINVAL\n");
 		return;
 	}
-	genlmsg_multicast(&genl_mpls, skb, 0, 0, GFP_KERNEL);
+	genlmsg_multicast(&genl_mpls, skb, 0, MPLS_GRP_TUNNEL, GFP_KERNEL);
 	MPLS_EXIT;
 }
 
@@ -860,7 +866,8 @@ int __init mpls_netlink_init(void)
 {
 	int err;
 
-	err = genl_register_family_with_ops_groups(&genl_mpls, mpls_genl_ops, mpls_gnl_mcgrps);
+	//err = genl_register_family_with_ops_groups(&genl_mpls, mpls_genl_ops, mpls_gnl_mcgrps);
+	err = genl_register_family_with_ops(&genl_mpls, mpls_genl_ops);
 	if (err) {
 		printk(MPLS_ERR "MPLS: failed to register with genetlink\n");
 		return -EINVAL;
