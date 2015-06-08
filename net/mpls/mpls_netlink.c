@@ -55,7 +55,6 @@ static int mpls_fill_ilm(struct sk_buff *skb, struct mpls_ilm *ilm,
 	struct gnet_stats_basic stats;
 	struct mpls_instr_req *instr;
 	void *hdr;
-	int i=0;
 
 	MPLS_ENTER;
 
@@ -69,16 +68,15 @@ static int mpls_fill_ilm(struct sk_buff *skb, struct mpls_ilm *ilm,
 	memcpy(&mil.mil_label, &ilm->ilm_label, sizeof (struct mpls_label));
 	mpls_instrs_unbuild(ilm->ilm_instr, instr);
 	instr->mir_direction = MPLS_IN;
-	memcpy(&stats, &ilm->ilm_stats, sizeof(stats));
+	memcpy(&stats, &ilm->ilm_stats, sizeof(struct gnet_stats_basic));
 	/* need to add drops here some how */
 
-	for(i=0;i<instr->mir_instr_length;i++){
-		printk("instr: %d\n", ((struct mpls_instr_elem*) &(instr->mir_instr[i]))->mir_opcode);
-	}
-
-	nla_put(skb, MPLS_ATTR_ILM, sizeof(mil), &mil);
-	nla_put(skb, MPLS_ATTR_INSTR, sizeof(*instr), instr);
-	nla_put(skb, MPLS_ATTR_STATS, sizeof(stats), &stats);
+	if(nla_put(skb, MPLS_ATTR_ILM, sizeof(mil), &mil))
+		goto nla_put_failure;
+	if(nla_put(skb, MPLS_ATTR_INSTR, sizeof(*instr), instr))
+		goto nla_put_failure;
+	if(nla_put(skb, MPLS_ATTR_STATS, sizeof(stats), &stats))
+		goto nla_put_failure;
 
 	kfree(instr);
 
@@ -226,6 +224,7 @@ static int genl_mpls_ilm_dump(struct sk_buff *skb, struct netlink_callback *cb)
 	rcu_read_unlock();
 	cb->args[0] = entry_count;
 
+	MPLS_DEBUG("skb->len %d\n", skb->len);
 	MPLS_DEBUG("Exit: entry %d\n", entry_count);
 	return skb->len;
 }
@@ -254,12 +253,15 @@ static int mpls_fill_nhlfe(struct sk_buff *skb, struct mpls_nhlfe *nhlfe,
 	mol.mol_propagate_ttl = nhlfe->nhlfe_propagate_ttl;
 	mpls_instrs_unbuild(nhlfe->nhlfe_instr, instr);
 	instr->mir_direction = MPLS_OUT;
-	memcpy(&stats, &nhlfe->nhlfe_stats, sizeof(stats));
+	memcpy(&stats, &nhlfe->nhlfe_stats, sizeof(struct gnet_stats_basic));
 	/* need to get drops added here some how */
 
-	nla_put(skb, MPLS_ATTR_NHLFE, sizeof(mol), &mol);
-	nla_put(skb, MPLS_ATTR_INSTR, sizeof(*instr), instr);
-	nla_put(skb, MPLS_ATTR_STATS, sizeof(stats), &stats);
+	if(nla_put(skb, MPLS_ATTR_NHLFE, sizeof(mol), &mol))
+		goto nla_put_failure;
+	if(nla_put(skb, MPLS_ATTR_INSTR, sizeof(*instr), instr))
+		goto nla_put_failure;
+	if(nla_put(skb, MPLS_ATTR_STATS, sizeof(stats), &stats))
+		goto nla_put_failure;
 
 	kfree(instr);
 
@@ -433,15 +435,16 @@ static int mpls_fill_xc(struct sk_buff *skb, struct mpls_ilm *ilm,
 	xc.mx_out.ml_type = MPLS_LABEL_KEY;
 	xc.mx_out.u.ml_key = nhlfe->nhlfe_key;
 
-	nla_put(skb, MPLS_ATTR_XC, sizeof(xc), &xc);
+	if(nla_put(skb, MPLS_ATTR_XC, sizeof(xc), &xc))
+		goto nla_put_failure;
 
 	MPLS_DEBUG("Exit: length\n");
 	return genlmsg_end(skb, hdr);
 
-/*nla_put_failure:
+nla_put_failure:
 	genlmsg_cancel(skb, hdr);
 	MPLS_DEBUG("Exit: -1\n");
-	return -ENOMEM;*/
+	return -ENOMEM;
 }
 
 void mpls_xc_event(int event, struct mpls_ilm *ilm,
@@ -598,15 +601,16 @@ static int mpls_fill_labelspace(struct sk_buff *skb, struct net_device *dev,
 	ls.mls_ifindex = dev->ifindex;
 	ls.mls_labelspace = mpls_get_labelspace_by_index(dev->ifindex);
 
-	nla_put(skb, MPLS_ATTR_LABELSPACE, sizeof(ls), &ls);
+	if(nla_put(skb, MPLS_ATTR_LABELSPACE, sizeof(ls), &ls))
+		goto nla_put_failure;
 
 	MPLS_DEBUG("Exit: length\n");
 	return genlmsg_end(skb, hdr);
 
-/*nla_put_failure:
+nla_put_failure:
 	genlmsg_cancel(skb, hdr);
 	MPLS_DEBUG("Exit: -1\n");
-	return -ENOMEM;*/
+	return -ENOMEM;
 }
 
 void mpls_labelspace_event(int event, struct net_device *dev)
@@ -721,15 +725,16 @@ static int mpls_fill_tunnel(struct sk_buff *skb,
 		ls.mls_labelspace = -1;
 	}*/
 
-	nla_put(skb, MPLS_ATTR_TUNNEL, sizeof(ls), &ls);
+	if(nla_put(skb, MPLS_ATTR_TUNNEL, sizeof(ls), &ls))
+		goto nla_put_failure;
 
 	MPLS_DEBUG("Exit: length\n");
 	return genlmsg_end(skb, hdr);
 
-/*nla_put_failure:
+nla_put_failure:
 	genlmsg_cancel(skb, hdr);
         MPLS_DEBUG("Exit: -1\n");
-        return -ENOMEM;*/
+        return -ENOMEM;
 }
 
 
