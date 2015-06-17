@@ -764,7 +764,7 @@ mpls_tunnel_setup (struct net_device *dev)
 	}*/
 	
 	random_ether_addr(dev->dev_addr);
-	dev->dev_addr[0] |= 0xa0;	//make tunnel mac first byte bigger than 0xA0
+	//dev->dev_addr[0] |= 0xa0;	//make tunnel mac first byte bigger than 0xA0
 	
 	/*
 	 * Then, initialize the priv field. This encloses the statistics
