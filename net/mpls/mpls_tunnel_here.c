@@ -434,6 +434,26 @@ int mpls_re_tx(struct sk_buff *skb, struct net_device *dev){
 	int len;
 	char *data, shortpkt[ETH_ZLEN];
 	struct mpls_tunnel_private *priv = netdev_priv(dev);
+	uint8_t fake_srcaddr[ETH_ALEN] = {0x12,0x34,0x56,0x78,0x91,0x23};
+	struct ethhdr *outerethhdr;
+
+	/* Create fake outer ether mac*/
+
+	skb_push(skb, ETH_HLEN); /* make skb->mac_header point to outer mac header */
+    skb_reset_mac_header(skb); /* instead of the inner one */
+    eth_hdr(skb)->h_proto = __constant_htons(ETH_P_TRILL);
+    /* make skb->data point to the right place (just after ether header) */
+    //skb_pull(skb, ETH_HLEN);
+    //skb_reset_mac_len(skb);
+	
+    outerethhdr = eth_hdr(skb);
+
+    /* change outer ether header */
+    /* bridge become the source_port address in outeretherhdr */
+    memcpy(outerethhdr->h_source, fake_srcaddr, ETH_ALEN);
+    /* dist port become dest address in outeretherhdr */
+    memcpy(outerethhdr->h_dest, dev->perm_addr, ETH_ALEN);
+
 	data = skb->data;
 	len = skb->len;
 	if (len < ETH_ZLEN) {

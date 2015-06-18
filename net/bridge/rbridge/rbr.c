@@ -569,53 +569,38 @@ static void rbr_recv(struct sk_buff *skb, u16 vid)
 	 * if frame are not discarded they will loop until reaching the
 	 * hop_count limit
 	 */
-	if (strncmp(skb->dev->name, "mpls", 4) == 0) {
-		memcpy(srcaddr, skb->dev->perm_addr, ETH_ALEN);
-		trh = (struct trill_hdr *)skb->data;
-		trill_flags = ntohs(trh->th_flags);
-		trhsize = sizeof(*trh) + trill_get_optslen(trill_flags);
-		if (unlikely(skb->len < trhsize)) {
-			pr_warn_ratelimited("rbr_recv:sk_buff len is less then minimal len\n");
-			goto recv_drop;
-		}
-
-		if (!skb->encapsulation) {
-			skb_pull(skb, trhsize);
-			skb_reset_inner_headers(skb);
-			skb->encapsulation = 1;
-			skb_push(skb, trhsize);
-		}
+	if (!memcmp(p->dev->dev_addr, eth_hdr(skb)->h_dest, ETH_ALEN) == 0){
+	  pr_warn_ratelimited("rbr_recv:if (!memcmp(p->dev->dev_addr, eth_hdr(skb)->h_dest, ETH_ALEN) == 0)\n");
+	  goto recv_drop;
 	}
-	else {
-		if (!memcmp(p->dev->dev_addr, eth_hdr(skb)->h_dest, ETH_ALEN) == 0)
-		  goto recv_drop;
-		memcpy(srcaddr, eth_hdr(skb)->h_source, ETH_ALEN);
-		trh = (struct trill_hdr *)skb->data;
-		trill_flags = ntohs(trh->th_flags);
-		trhsize = sizeof(*trh) + trill_get_optslen(trill_flags);
-		if (unlikely(skb->len < trhsize + ETH_HLEN)) {
-			pr_warn_ratelimited("rbr_recv:sk_buff len is less then minimal len\n");
-			goto recv_drop;
-		}
-	       /*
-		* seems to be a valid TRILL frame,
-		* check if TRILL header can be pulled
-		* before proceeding
-		*/
-		if (unlikely(!pskb_may_pull(skb, trhsize + ETH_HLEN)))
-			goto recv_drop;
-		/*
-		* WARNING SKB structure may be changed by pskb_may_pull
-		* reassign trh pointer before continuing any further
-		*/
-		trh = (struct trill_hdr *)skb->data;
+	memcpy(srcaddr, eth_hdr(skb)->h_source, ETH_ALEN);
+	trh = (struct trill_hdr *)skb->data;
+	trill_flags = ntohs(trh->th_flags);
+	trhsize = sizeof(*trh) + trill_get_optslen(trill_flags);
+	if (unlikely(skb->len < trhsize + ETH_HLEN)) {
+		pr_warn_ratelimited("rbr_recv:sk_buff len is less then minimal len\n");
+		goto recv_drop;
+	}
+       /*
+	* seems to be a valid TRILL frame,
+	* check if TRILL header can be pulled
+	* before proceeding
+	*/
+	if (unlikely(!pskb_may_pull(skb, trhsize + ETH_HLEN))){
+		pr_warn_ratelimited("rbr_recv:unlikely(!pskb_may_pull(skb, trhsize + ETH_HLEN)\n");
+		goto recv_drop;
+	}
+	/*
+	* WARNING SKB structure may be changed by pskb_may_pull
+	* reassign trh pointer before continuing any further
+	*/
+	trh = (struct trill_hdr *)skb->data;
 
-		if (!skb->encapsulation) {
-			skb_pull(skb, trhsize + ETH_HLEN);
-			skb_reset_inner_headers(skb);
-			skb->encapsulation = 1;
-			skb_push(skb, trhsize + ETH_HLEN);
-		}
+	if (!skb->encapsulation) {
+		skb_pull(skb, trhsize + ETH_HLEN);
+		skb_reset_inner_headers(skb);
+		skb->encapsulation = 1;
+		skb_push(skb, trhsize + ETH_HLEN);
 	}
 
 	if (unlikely(!VALID_NICK(trh->th_ingressnick) ||
@@ -776,12 +761,6 @@ rx_handler_result_t rbr_handle_frame(struct sk_buff **pskb)
 	if (br->trill_enabled == BR_NO_TRILL) {
 		goto handle_by_bridge;
 	} else {
-
-		if (strncmp(skb->dev->name, "mpls", 4) == 0) {
-				rbr_recv(skb, vid);
-				return RX_HANDLER_CONSUMED;
-		}
-
 		if (unlikely(skb->pkt_type == PACKET_LOOPBACK))
 			return RX_HANDLER_PASS;
 		skb = skb_share_check(skb, GFP_ATOMIC);
