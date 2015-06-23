@@ -200,6 +200,8 @@ static int rbr_multidest_fwd(struct net_bridge_port *p,
 	uint16_t adjnick;
 	bool nicksaved = false;
 	unsigned int i;
+	bool tunnelsent = false;
+	const uint8_t tunnel_pesudo_mac[ETH_ALEN] = {0x12,0x34,0x56,0x78,0x91,0x23};
 
 	if (unlikely(!p)) {
 		pr_warn_ratelimited("rbr_multidest_fwd:port error\n");
@@ -228,6 +230,14 @@ static int rbr_multidest_fwd(struct net_bridge_port *p,
 		    (memcmp(adj->rbr_ni->adjsnpa, saddr, ETH_ALEN) == 0)) {
 			rbr_node_put(adj);
 			continue;
+		}
+
+		/* (PE func) To avoid sent multiple same packet to mpls tunnel */
+		if ((memcmp(adj->rbr_ni->adjsnpa, tunnel_pesudo_mac, ETH_ALEN) == 0)) {
+			if(!tunnelsent)
+				tunnelsent = true;
+			else
+				continue;
 		}
 
 		/* save the first found adjacency to avoid coping SKB

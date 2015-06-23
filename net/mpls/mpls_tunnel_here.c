@@ -438,7 +438,6 @@ int mpls_re_tx(struct sk_buff *skb, struct net_device *dev){
 	struct ethhdr *outerethhdr;
 
 	/* Create fake outer ether mac*/
-
 	skb_push(skb, ETH_HLEN); /* make skb->mac_header point to outer mac header */
     skb_reset_mac_header(skb); /* instead of the inner one */
     eth_hdr(skb)->h_proto = __constant_htons(ETH_P_TRILL);
@@ -452,7 +451,7 @@ int mpls_re_tx(struct sk_buff *skb, struct net_device *dev){
     /* bridge become the source_port address in outeretherhdr */
     memcpy(outerethhdr->h_source, fake_srcaddr, ETH_ALEN);
     /* dist port become dest address in outeretherhdr */
-    memcpy(outerethhdr->h_dest, dev->perm_addr, ETH_ALEN);
+    memcpy(outerethhdr->h_dest, dev->dev_addr, ETH_ALEN);
 
 	data = skb->data;
 	len = skb->len;
