@@ -441,7 +441,7 @@ int mpls_re_tx(struct sk_buff *skb, struct net_device *dev){
 	skb_push(skb, ETH_HLEN); /* make skb->mac_header point to outer mac header */
     skb_reset_mac_header(skb); /* instead of the inner one */
     eth_hdr(skb)->h_proto = __constant_htons(ETH_P_TRILL);
-    /* make skb->data point to the right place (just after ether header) */
+    // make skb->data point to the right place (just after ether header) 
     //skb_pull(skb, ETH_HLEN);
     //skb_reset_mac_len(skb);
 	

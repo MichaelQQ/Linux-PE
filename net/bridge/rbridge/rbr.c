@@ -187,6 +187,12 @@ dest_fwd_fail:
 	return;
 }
 
+/*used for avoid send copy packet to the same tunnel*/
+struct Adj_Sent {
+	uint8_t mac[ETH_ALEN];
+	struct list_head list;
+};
+
 static int rbr_multidest_fwd(struct net_bridge_port *p,
 			     struct sk_buff *skb, uint16_t egressnick,
 			     uint16_t ingressnick, const uint8_t *saddr,
@@ -200,8 +206,14 @@ static int rbr_multidest_fwd(struct net_bridge_port *p,
 	uint16_t adjnick;
 	bool nicksaved = false;
 	unsigned int i;
-	bool tunnelsent = false;
-	const uint8_t tunnel_pesudo_mac[ETH_ALEN] = {0x12,0x34,0x56,0x78,0x91,0x23};
+	struct Adj_Sent sentlist;
+	struct Adj_Sent *ptr;
+	struct Adj_Sent *newptr;
+	bool found = false;
+
+	INIT_LIST_HEAD(&sentlist.list);
+	// const uint8_t tunnel_pesudo_mac[ETH_ALEN] = {0x12,0x34,0x56,0x78,0x91,0x23};
+	// bool tunnelsent = false;
 
 	if (unlikely(!p)) {
 		pr_warn_ratelimited("rbr_multidest_fwd:port error\n");
@@ -232,13 +244,31 @@ static int rbr_multidest_fwd(struct net_bridge_port *p,
 			continue;
 		}
 
-		/* (PE func) To avoid sent multiple same packet to mpls tunnel */
-		if ((memcmp(adj->rbr_ni->adjsnpa, tunnel_pesudo_mac, ETH_ALEN) == 0)) {
-			if(!tunnelsent)
-				tunnelsent = true;
-			else
-				continue;
+		found = false;
+		list_for_each_entry(ptr, &sentlist.list, list){
+			if ((memcmp(adj->rbr_ni->adjsnpa, ptr->mac, ETH_ALEN) == 0)){
+				found = true;
+				break;
+			}
 		}
+		if(found){
+			pr_warn_ratelimited("rbr_multidest_fwd: COPY\n");
+			continue;
+		}
+		else{
+			newptr = kmalloc(sizeof(*newptr), GFP_KERNEL);
+			strncpy(adj->rbr_ni->adjsnpa, newptr->mac, ETH_ALEN);
+			INIT_LIST_HEAD(&newptr->list);
+
+			list_add_tail(&(newptr->list), &(sentlist.list));
+		}
+		// /* (PE func) To avoid sent multiple same packet to mpls tunnel */
+		// if ((memcmp(adj->rbr_ni->adjsnpa, tunnel_pesudo_mac, ETH_ALEN) == 0)) {
+		// 	if(!tunnelsent)
+		// 		tunnelsent = true;
+		// 	else
+		// 		continue;
+		// }
 
 		/* save the first found adjacency to avoid coping SKB
 		 * if no other adjacency is found later no frame copy will be made
@@ -264,6 +294,11 @@ static int rbr_multidest_fwd(struct net_bridge_port *p,
 		rbr_node_put(adj);
 	}
 	rbr_node_put(dest);
+
+	list_for_each_entry_safe(newptr, ptr, &sentlist.list, list){
+		list_del(&newptr->list);
+		kfree(newptr);
+	}
 
 	/* if nicksave is false it means that copy will not be forwarded
 	 * as no availeble ajacency was found in such a case frame should
@@ -762,6 +797,11 @@ rx_handler_result_t rbr_handle_frame(struct sk_buff **pskb)
 	struct sk_buff *skb = *pskb;
 	u16 vid = 0;
 
+	struct trill_hdr *trh;
+	struct rbr *rbr;
+	struct rbr_node *dest = NULL;
+	struct ethhdr *outerethhdr;
+
 	p = br_port_get_rcu(skb->dev);
 	if (unlikely(!p))
 		goto drop;
@@ -776,6 +816,25 @@ rx_handler_result_t rbr_handle_frame(struct sk_buff **pskb)
 		skb = skb_share_check(skb, GFP_ATOMIC);
 		if (!skb)
 			return RX_HANDLER_CONSUMED;
+
+		if(strncmp(p->dev->name, "mpls", 4) == 0){
+			//pr_warn_ratelimited("packet form %s\n", p->dev->name);
+
+	        trh = (struct trill_hdr *)skb->data;
+	        rbr = p->br->rbr;
+	        dest = rbr_find_node(rbr, trh->th_ingressnick);
+	        if (unlikely(dest == NULL)) {
+				pr_warn_ratelimited("rbr_recv: mulicast  with unknown destination\n");
+				goto drop;
+			}
+
+	        outerethhdr = eth_hdr(skb);
+		    // /* change outer ether header */
+		    memcpy(outerethhdr->h_source, dest->rbr_ni->adjsnpa, ETH_ALEN);
+
+		    rbr_node_put(dest);
+    	}
+
 		if (unlikely(!is_valid_ether_addr(eth_hdr(skb)->h_source))) {
 			pr_warn_ratelimited("rbr_handle_frame:invalid src address\n");
 			br->dev->stats.rx_dropped++;
