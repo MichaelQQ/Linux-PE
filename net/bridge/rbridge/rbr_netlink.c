@@ -56,6 +56,12 @@ int create_node(struct net_bridge_port *p, struct rbr *rbr,
 		return -ENOMEM;
 	old = rbr->rbr_nodes[rbr_ni_partial->nick];
 	nla_memcpy(rbr_ni, info->attrs[TRILL_ATTR_BIN], size);
+	
+	rbr_ni->remote = false;
+	if(strncmp(p->dev->name, "mpls", 4) == 0){
+		rbr_ni->remote = true;
+	}
+
 	if (old)
 		old_size = RBR_NI_TOTALSIZE(old->rbr_ni);
 	/* replace old node by a new one only if nickname information have changed */

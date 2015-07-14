@@ -200,6 +200,7 @@ static int rbr_multidest_fwd(struct net_bridge_port *p,
 {
 	struct rbr *rbr;
 	struct rbr_node *dest;
+	struct rbr_node *sorc;
 	struct rbr_node *adj;
 	struct sk_buff *skb2;
 	uint16_t adjnicksaved = 0;
@@ -230,6 +231,11 @@ static int rbr_multidest_fwd(struct net_bridge_port *p,
 		goto multidest_fwd_fail;
 	}
 
+	if ((sorc = rbr_find_node(rbr, ingressnick)) == NULL) {
+		pr_warn_ratelimited("rbr_multidest_fwd: unable to find ingress\n");
+		goto multidest_fwd_fail;
+	}
+
 	/* Send a copy to all our adjacencies on the DT root */
 	for (i = 0; i < dest->rbr_ni->adjcount; i++) {
 		/* Check for a valid adjacency node */
@@ -244,6 +250,12 @@ static int rbr_multidest_fwd(struct net_bridge_port *p,
 			continue;
 		}
 
+		/* avoid the pkt from vpls network send back to vpls network */
+		if(sorc->rbr_ni->remote && adj->rbr_ni->remote){
+			continue;
+		}
+
+		/* (PE func) To avoid sent multiple same packet to mpls tunnel */
 		found = false;
 		list_for_each_entry(ptr, &sentlist.list, list){
 			if ((memcmp(adj->rbr_ni->adjsnpa, ptr->mac, ETH_ALEN) == 0)){
@@ -252,7 +264,7 @@ static int rbr_multidest_fwd(struct net_bridge_port *p,
 			}
 		}
 		if(found){
-			pr_warn_ratelimited("rbr_multidest_fwd: COPY\n");
+			//pr_warn_ratelimited("rbr_multidest_fwd: COPY\n");
 			continue;
 		}
 		else{
@@ -262,13 +274,6 @@ static int rbr_multidest_fwd(struct net_bridge_port *p,
 
 			list_add_tail(&(newptr->list), &(sentlist.list));
 		}
-		// /* (PE func) To avoid sent multiple same packet to mpls tunnel */
-		// if ((memcmp(adj->rbr_ni->adjsnpa, tunnel_pesudo_mac, ETH_ALEN) == 0)) {
-		// 	if(!tunnelsent)
-		// 		tunnelsent = true;
-		// 	else
-		// 		continue;
-		// }
 
 		/* save the first found adjacency to avoid coping SKB
 		 * if no other adjacency is found later no frame copy will be made
