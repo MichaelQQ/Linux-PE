@@ -257,7 +257,7 @@ static int rbr_multidest_fwd(struct net_bridge_port *p,
 		}
 		else{
 			newptr = kmalloc(sizeof(*newptr), GFP_KERNEL);
-			strncpy(adj->rbr_ni->adjsnpa, newptr->mac, ETH_ALEN);
+			strncpy(newptr->mac, adj->rbr_ni->adjsnpa, ETH_ALEN);
 			INIT_LIST_HEAD(&newptr->list);
 
 			list_add_tail(&(newptr->list), &(sentlist.list));
