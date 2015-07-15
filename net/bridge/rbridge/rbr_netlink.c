@@ -56,11 +56,6 @@ int create_node(struct net_bridge_port *p, struct rbr *rbr,
 		return -ENOMEM;
 	old = rbr->rbr_nodes[rbr_ni_partial->nick];
 	nla_memcpy(rbr_ni, info->attrs[TRILL_ATTR_BIN], size);
-	
-	rbr_ni->remote = false;
-	if(strncmp(p->dev->name, "mpls", 4) == 0){
-		rbr_ni->remote = true;
-	}
 
 	if (old)
 		old_size = RBR_NI_TOTALSIZE(old->rbr_ni);
@@ -110,6 +105,11 @@ static int trill_cmd_set_nicks_info(struct sk_buff *skb, struct genl_info *info)
 	p = br_port_get_rcu(source_port);
 	if (!p || !(p->br) || !(p->br->rbr))
 		goto fail;
+
+	rbr_ni.remote = false;
+	if(strncmp(p->dev->name, "mpls", 4) == 0){
+		rbr_ni.remote = true;
+	}
 
 	err = create_node(p, p->br->rbr, &rbr_ni, info);
 	if (err)
