@@ -42,6 +42,7 @@ int create_node(struct net_bridge_port *p, struct rbr *rbr,
 	size_t old_size = 0;
 	struct rbr_node* old;
 	struct rbr_nickinfo *rbr_ni;
+	struct net_device *dev;
 
 	if (rbr_ni_partial == NULL)
 		return -EINVAL;
@@ -71,6 +72,15 @@ int create_node(struct net_bridge_port *p, struct rbr *rbr,
 		}
 		atomic_set(&new->refs, 1);
 		new->rbr_ni = rbr_ni;
+		new->isRemote = false;
+		/* set remote RB's rbr_ni.remote = true
+		   The own nick info make "dev == NULL" */
+		if((dev = dev_get_by_index_rcu(&init_net, rbr_ni->linkid)) != NULL){
+			if(strncmp(dev->name, "mpls", 4) == 0){
+				new->isRemote = true;
+			}
+		}
+
 		/* avoid deleting node while it is been used for routing */
 		rcu_assign_pointer(rbr->rbr_nodes[rbr_ni->nick], new);
 		if (old)
@@ -90,6 +100,7 @@ static int trill_cmd_set_nicks_info(struct sk_buff *skb, struct genl_info *info)
 	struct net *net = sock_net(skb->sk);
 	struct net_bridge_port *p = NULL;
 	int err = -EINVAL;
+	struct net_device *dev;
 
 	nla_memcpy(&rbr_ni, info->attrs[TRILL_ATTR_BIN], sizeof(rbr_ni));
 	if (!VALID_NICK(rbr_ni.nick))
@@ -105,11 +116,6 @@ static int trill_cmd_set_nicks_info(struct sk_buff *skb, struct genl_info *info)
 	p = br_port_get_rcu(source_port);
 	if (!p || !(p->br) || !(p->br->rbr))
 		goto fail;
-
-	rbr_ni.remote = false;
-	if(strncmp(p->dev->name, "mpls", 4) == 0){
-		rbr_ni.remote = true;
-	}
 
 	err = create_node(p, p->br->rbr, &rbr_ni, info);
 	if (err)

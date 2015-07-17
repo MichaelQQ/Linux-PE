@@ -54,13 +54,12 @@ struct rbr_nickinfo {
 	 * tree roots. Adjacency nicks and
 	 * distribution tree roots are 16-bit fields.
 	 */
-	 /* the RBridge is in Remote or not */
-	 bool remote;
 };
 
 struct rbr_node {
 	struct rbr_nickinfo	*rbr_ni;
 	atomic_t		refs; /* reference count */
+	bool 			isRemote;
 };
 
 struct rbr {

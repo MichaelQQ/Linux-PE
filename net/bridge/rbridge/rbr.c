@@ -251,8 +251,7 @@ static int rbr_multidest_fwd(struct net_bridge_port *p,
 		}
 
 		/* avoid the pkt from vpls network send back to vpls network */
-		if(sorc->rbr_ni->remote && adj->rbr_ni->remote){
-			pr_warn_ratelimited("rbr_multidest_fwd: sorc->rbr_ni->remote && adj->rbr_ni->remote\n");
+		if(sorc->isRemote && adj->isRemote){
 			continue;
 		}
 
@@ -265,7 +264,6 @@ static int rbr_multidest_fwd(struct net_bridge_port *p,
 			}
 		}
 		if(found){
-			pr_warn_ratelimited("rbr_multidest_fwd: COPY\n");
 			continue;
 		}
 		else{
