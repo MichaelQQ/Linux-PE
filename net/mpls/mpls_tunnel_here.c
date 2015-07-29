@@ -609,7 +609,6 @@ mpls_tunnel_destructor (struct net_device *dev)
 int 
 mpls_tunnel_xmit (struct sk_buff *skb, struct net_device *dev) 
 {
-	const char *err_nonhlfe = "NHLFE was invalid";
 	int result = 0;
 	struct mpls_tunnel_private *priv = netdev_priv(dev);
 	struct dst_entry *dst = (struct dst_entry*)skb->_skb_refdst;
@@ -647,7 +646,7 @@ mpls_tunnel_xmit (struct sk_buff *skb, struct net_device *dev)
 
 	dev_kfree_skb(skb);
 	priv->stat.tx_errors++;
-	MPLS_DEBUG("exit - %s\n", err_nonhlfe);
+	MPLS_DEBUG("exit - NHLFE was invalid\n");
 	return 0;
 
 }

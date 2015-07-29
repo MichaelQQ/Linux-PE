@@ -153,6 +153,9 @@ int mpls_output2 (struct sk_buff *skb,struct mpls_nhlfe *nhlfe)
 	int mtu = nhlfe->nhlfe_mtu;
 	struct sockaddr *sock_addr;
 	struct mpls_dst* mdst;
+	int opcodae;// = mi->mi_opcode;
+	void* data;// = mi->mi_data;
+	char* msg;//  = mpls_ops[opcode].msg;
 
 	MPLS_OUT_OPCODE_PROTOTYPE(*func);
 
@@ -184,16 +187,16 @@ mpls_output2_start:
 
 	// Iterate all the opcodes for this NHLFE 
 	for (mi = nhlfe->nhlfe_instr; mi; mi = mi->mi_next) {
-		int opcode = mi->mi_opcode;
-		void* data = mi->mi_data;
-		char* msg  = mpls_ops[opcode].msg;
+		opcode = mi->mi_opcode;
+		data = mi->mi_data;
+		msg  = mpls_ops[opcode].msg;
 		//MPLS_DEBUG("opcode %s\n",msg);
 		
 		if(strcmp (msg, "SET") == 0){
 			mdst = (struct mpls_dst*) data;
 			if((struct sockaddr*) &mdst->md_nh == NULL)
 				goto mpls_output2_drop;
-            sock_addr = (struct sockaddr*) &mdst->md_nh;
+            		sock_addr = (struct sockaddr*) &mdst->md_nh;
 		}
 
 		if (mpls_ops[opcode].extra) {
