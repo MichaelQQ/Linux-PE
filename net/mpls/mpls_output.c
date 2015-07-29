@@ -153,7 +153,7 @@ int mpls_output2 (struct sk_buff *skb,struct mpls_nhlfe *nhlfe)
 	int mtu = nhlfe->nhlfe_mtu;
 	struct sockaddr *sock_addr;
 	struct mpls_dst* mdst;
-	int opcodae;// = mi->mi_opcode;
+	int opcode;// = mi->mi_opcode;
 	void* data;// = mi->mi_data;
 	char* msg;//  = mpls_ops[opcode].msg;
 
